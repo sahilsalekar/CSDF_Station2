@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings
+.vscode/
+
+# MacOS metadata
+.DS_Store
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment variables and secret files
+.env
+.env.*
+
+# Compiled C extensions
+*.so
+
+# Test and coverage results
+htmlcov/
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+
+# MyPy and Pyre type checkers
+.mypy_cache/
+.pyre/
