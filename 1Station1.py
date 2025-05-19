@@ -210,6 +210,7 @@ def run(client, pallet_row, pallet_col):
 
     except Exception as e:
         print(f'[ERROR] In {sta_num} {cid} {rid} {e}')
+        return
     
     finally:
         #Home position

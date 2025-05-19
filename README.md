@@ -1,3 +1,9 @@
+This is the project for CMAC CSDF 
+
+This code is for station 2
+
+
+
 reset tray POS 
 
 http POST http://localhost:8002/reset_tray reset_to=0
