@@ -53,11 +53,6 @@ def in_vial_tray(client):
                 command = f"palletindex {cmd_args[0]} {cmd_args[1]} {cmd_args[2]}"
                 client.SendCommand(command)
                 reply = client.SendCommand("waitforeom")
-                if reply == "0":
-                    print(f"Pallet index {cmd_args[1]} {cmd_args[2]} set successfully.")
-                else:
-                    print("Failed to set pallet index.")
-                    raise RuntimeError("Failed to set pallet index! Stopping Execution.")
                 
                 # Increment tray position and write to file
                 tray_pos += 1
@@ -71,7 +66,7 @@ def in_vial_tray(client):
                 client.SendCommand("waitforeom")
 
                 if reply == "0 -1":
-                    print("Vial present. Task complete.")
+                    #print("Vial present. Task complete.")
                     # Safe Pos
                     client.SendCommand("moveoneaxis 4 120.095 1")
                     reply = client.SendCommand("waitforeom")
@@ -79,9 +74,14 @@ def in_vial_tray(client):
                 else:
                     print("Vial not present. Retrying...")
 
+                    if tray_pos == 7:
+                        client.SendCommand("moveoneaxis 4 120.095 1")
+                        reply = client.SendCommand("waitforeom")
+                        raise RuntimeError("No Vial Found in - in tray!")
+
         else:
-            print("Robot did not move to in Tray.")
-            raise RuntimeError("Failed to move to in tray! Stopping Execution.") 
+            #print("Robot did not move to in Tray.")
+            raise  
 
         
     except Exception as e:
