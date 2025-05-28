@@ -1,4 +1,5 @@
 import time
+import failvial
 
 def qr_check(client):
     """
@@ -32,15 +33,16 @@ def qr_check(client):
                 client.SendCommand("movec 1 1540.123 64.833 645.396 88.161 90 180 2")
                 reply = client.SendCommand("waitforeom")
             else:
-                client.SendCommand("movej 1 732.082 13.885 309.756 122.314 115.926 999.837")
+                client.SendCommand("movej 1 732.082 13.885 309.756 122.314 109.165 999.837")
                 reply = client.SendCommand("waitforeom")
 
-                # Home Pos
-                client.SendCommand("movej 1 645.401 12.519 313.734 121.907 109.165 999.837")
+                client.SendCommand("movej 1 732.082 -2.902 180.537 178.063 109.165 999.837")
                 reply = client.SendCommand("waitforeom")
 
                 print("Vial present")
-                raise RuntimeError("Vial Present at QR! Stopping Execution")
+                failvial.failvial(client)
+                raise
+                #raise RuntimeError("Vial Present at QR! Stopping Execution")
 
         else:
             print("Robot did not move to qr.")

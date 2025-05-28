@@ -74,10 +74,11 @@ def in_vial_tray(client):
                 else:
                     print("Vial not present. Retrying...")
 
-                    if tray_pos == 7:
+                    if tray_pos == 8:
                         client.SendCommand("moveoneaxis 4 120.095 1")
                         reply = client.SendCommand("waitforeom")
-                        raise RuntimeError("No Vial Found in - in tray!")
+                        return
+                        #raise RuntimeError("No Vial Found in - in tray!")
 
         else:
             #print("Robot did not move to in Tray.")

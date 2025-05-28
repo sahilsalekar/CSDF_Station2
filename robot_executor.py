@@ -12,7 +12,7 @@ ADD_TASK_API = "http://localhost:8000/add_task"
 REQUEUE_API = "http://localhost:8000/requeue_task"
 REMOVE_API = "http://localhost:8000/remove_task"
 TRAY_API = "http://localhost:8002/is_tray_ready"
-SEND_VIAL_API = "http://130.159.93.21:8000/send_vial"  
+SEND_VIAL_API = "http://130.159.93.21:8005/send_vial"  
 
 RID_TO_LETTER = "ABCDEFGH"
 
@@ -78,14 +78,25 @@ def process_task(task, client):
         row, col = get_pallet_row_col(col_letter)
         module = importlib.import_module(f"{task_type}Station{cid}")
         module.run(client, row, col)
+        
+        # ✅ Only remove task after full success
         print(f"✅ Task completed: {task}")
         remove_task(task)
 
     except Exception as e:
         print(f"[ERROR] Task execution failed: {e}")
+
+        # ✅ Requeue task to keep it in task.json
         requeue_task(task)
+
+        # ✅ Stop the robot executor if TCS error is critical
+        if "TCS error" in str(e):
+            print("❌ Fatal TCS error encountered — stopping robot executor.")
+            exit(1)  # You can also use sys.exit(1)
+
     finally:
         robot_busy = False
+
 
 
 def schedule_new_experiment():

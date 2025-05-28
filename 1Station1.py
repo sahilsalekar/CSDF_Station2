@@ -7,6 +7,10 @@ import failvial
 from plc_qr_seq import plc_qr_seq
 from dashboard import Dashboard
 import json
+import balance_check
+import balance_pick
+import balance_place
+from balance_tcp import BalanceTCPClient
 
 dash = Dashboard()
 
@@ -78,6 +82,11 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand("moveoneaxis 1 1017.83 1")
                     reply = client.SendCommand("waitforeom")
 
+                    # Balance Check
+                    balance_check.balance_check(client)
+
+                    time.sleep(0.5)
+
                     # QR Check
                     print("Executing qr_check")
                     qr_check.qr_check(client)
@@ -126,8 +135,33 @@ def run(client, pallet_row, pallet_col):
                             failvial.failvial(client)
                             return
                                            
+                        # balance place
+                        balance_place.balance_place(client)
+
+                        time.sleep(0.5)
+
+                        # balance weigh
+                        balance = BalanceTCPClient()
+                        weight_mg = balance.read_weight()
+                        balance.disconnect()
+
+                        time.sleep(0.5)
+
+                        # send weight
+                        resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
+
+                        time.sleep(0.5)
+
+                        # balance pick
+                        balance_pick.balance_pick(client)
+
+                        time.sleep(0.5)
                         
                         client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+                        reply = client.SendCommand("waitforeom")
+
+                        # Below Row
+                        client.SendCommand("moveoneaxis 1 319.49 1")
                         reply = client.SendCommand("waitforeom")
 
                         # safe postion

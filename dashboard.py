@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 
 class Dashboard:
     def __init__(self, base_url='http://130.159.137.194:8064'):
@@ -62,6 +63,23 @@ class Dashboard:
             return data
         except requests.RequestException as e:
             print(f"[ERROR] Failed to initiate experiment: {e}")
+            return None
+        
+    def add_vial_mass(self, named_time, mass, exp_id):
+        try:
+            time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            payload = {
+                "time": time_now,
+                "named_time": named_time,
+                "mass": mass,
+                "exp_id": exp_id
+            }
+            response = requests.post(f'{self.base_url}/add_vial_mass', json=payload)
+            response.raise_for_status()
+            data = response.json()
+            return data
+        except requests.RequestException as e:
+            print(f"[ERROR] Failed to add vial mass: {e}")
             return None
 
 

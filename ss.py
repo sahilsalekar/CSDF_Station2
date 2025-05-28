@@ -1,8 +1,5 @@
 import requests
 
-data = {
-    [1, 1, "A"]
-}
+response = requests.post("http://130.159.93.21:8005/initiate_CSDF_Station3", json={"type": "Crystalline"})
 
-res = requests.post("http://localhost:1880/task-update", json=data)
 

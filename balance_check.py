@@ -1,5 +1,6 @@
 import time
 import S71200_PLC
+import failvial
 
 def balance_check(client):
     """
@@ -8,59 +9,82 @@ def balance_check(client):
     print("Executing Routine balance_check")
     try:
         # PLC Code
+        S71200_PLC.write_memory_bit(100, 0, False) # Open(100.0)
+        time.sleep(1)
+        S71200_PLC.write_memory_bit(100, 1, False) # Close(100.1)
+        time.sleep(1)
+    
+        S71200_PLC.write_memory_bit(100, 0, True)
+        time.sleep(5)
         S71200_PLC.write_memory_bit(100, 0, False)
         time.sleep(1)
-        S71200_PLC.write_memory_bit(100, 1, False)
-        time.sleep(1)
+
         Shield_sensor = S71200_PLC.read_input_bit(0, 0)
-        if Shield_sensor:
-            S71200_PLC.write_memory_bit(100, 0, True)
-            time.sleep(10)
 
-        else:
-            S71200_PLC.write_memory_bit(100, 0, True)
-            time.sleep(10)
+        if not Shield_sensor:   
 
-        # Robot to Balance
-        client.SendCommand("moveoneaxis 6 999.837 1")
-        reply = client.SendCommand("waitforeom")
-        if reply == "0":
-            print("Robot moved to Balance.")
-            client.SendCommand("movej 1 645.401 12.519 313.734 121.907 109.165 999.837")
-            reply = client.SendCommand("waitforeom")
-        
-            client.SendCommand("graspplate 117 60 10")
-            reply = client.SendCommand("waitforeom")
-        
-            client.SendCommand("movec 1 1540.111 64.784 486.108 88.156 90 180 2")
+            # Robot to Balance
+            client.SendCommand("moveoneaxis 6 343.377 1")
             reply = client.SendCommand("waitforeom")
             if reply == "0":
-                print("Robot moved to QR point.")
+                print("Robot moved to Balance.")
+
+                client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 103.064 343.38") # Safe Pos Balance
+                reply = client.SendCommand("waitforeom")
+                
+                client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 115.873 343.38") # Balance approach
+                reply = client.SendCommand("waitforeom")
+            
+                client.SendCommand("graspplate 117 60 10")
+                reply = client.SendCommand("waitforeom")
+            
+                client.SendCommand("movec 1 598.235 360.373 844.706 89.743 90 180 1") # Balance point
+                reply = client.SendCommand("waitforeom")
+                if reply == "0":
+                    print("Robot moved to Balance point.")
+                else:
+                    print("Robot did not move to Balance point.")
+                    raise RuntimeError("Robot Failed to move to balance point! Stopping Execution.")
+
+                command = client.SendCommand("graspplate -117 60 10")
+                reply = client.SendCommand("waitforeom")
+
+                if command == '0 0':
+                    client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 115.873 343.38")
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 103.064 343.38") # Safe Pos Balance
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("movej 1 1022.981 -2.902 180.537 178.063 103.542 343.38") # Safe Pos Balance
+                    reply = client.SendCommand("waitforeom")
+
+                else:
+                    client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 109.165 343.38")
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 109.165 343.38") # Safe Pos Balance
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("movej 1 1022.981 -2.902 180.537 178.063 109.165 343.38") # Safe Pos Balance
+                    reply = client.SendCommand("waitforeom")
+
+                    print("Vial present")
+
+                    failvial.failvial(client)
+                    return
+                    #raise RuntimeError("Vial Present at Balance! Stopping Execution")
+
             else:
-                print("Robot did not move to QR point.")
-                raise RuntimeError("Robot Failed to move to qr point! Stopping Execution.")
-
-            command = client.SendCommand("graspplate -117 60 10")
-            reply = client.SendCommand("waitforeom")
-
-            if command == '0 0':
-                client.SendCommand("movec 1 1540.123 64.833 645.396 88.161 90 180 2")
-                reply = client.SendCommand("waitforeom")
-            else:
-                client.SendCommand("movej 1 732.082 13.885 309.756 122.314 115.926 999.837")
-                reply = client.SendCommand("waitforeom")
-
-                # Home Pos
-                client.SendCommand("movej 1 645.401 12.519 313.734 121.907 109.165 999.837")
-                reply = client.SendCommand("waitforeom")
-
-                print("Vial present")
-                raise RuntimeError("Vial Present at QR! Stopping Execution")
-
-        else:
-            print("Robot did not move to qr.")
-            raise RuntimeError("Robot failed to move to qr! Stopping Execution.")
-        
+                print("Robot did not move to Balance.")
+                raise RuntimeError("Robot failed to move to Balance! Stopping Execution.")
+            
     except Exception as e:
-        print(f"Error in qr_check: {e}")
+        print(f"Error in balance_check: {e}")
         raise
+
+    finally:
+        S71200_PLC.write_memory_bit(100, 1, True)
+        time.sleep(5)
+        S71200_PLC.write_memory_bit(100, 1, False)
+        time.sleep(1)
