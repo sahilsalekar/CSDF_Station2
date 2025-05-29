@@ -1,5 +1,12 @@
+
 import requests
+import time
 
-response = requests.post("http://130.159.93.21:8005/initiate_CSDF_Station3", json={"type": "Crystalline"})
+resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "busy"}, timeout=1)
 
+print(resp)
 
+time.sleep(5)
+
+resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "idle"}, timeout=1)
+   

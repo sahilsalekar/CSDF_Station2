@@ -1,5 +1,6 @@
 import socket
 import time
+import requests
 
 class BalanceTCPClient:
     def __init__(self, ip='192.168.1.7', port=23, timeout=5):
@@ -68,19 +69,25 @@ class BalanceTCPClient:
         print(f"Raw response: {response}")
 
         try:
-            # Extract number from format like "SS     14.256 g"
-            parts = response.split()
-            if len(parts) >= 2:
-                weight_g = float(parts[1])
+            if not response.startswith("S S"):
+                raise ValueError(f"Unstable or invalid weight reading: '{response}'")
+
+            # Use regex to extract the number (e.g., 0.00008 from 'S S    0.00008 g')
+            import re
+            match = re.search(r"([-+]?\d*\.\d+|\d+)", response)
+            if match:
+                weight_g = float(match.group(0))
                 weight_mg = weight_g * 1000
                 print(f"Weight in mg: {weight_mg}")
+                payload = {"weight": weight_mg}
+                res = requests.post("http://127.0.0.1:1880/weight-update", json=payload, timeout=1)
                 return weight_mg
             else:
-                print("Unexpected response format.")
+                raise ValueError("No numeric weight found in response.")
         except Exception as e:
-            print(f"Failed to parse weight: {e}")
+            print(f"Error reading weight: {e}")
+            raise  # Propagate the exception to stop the main program
 
-        return 0.0
 
     def zero_balance(self) -> str:
         """Send 'Z' command to zero the balance."""

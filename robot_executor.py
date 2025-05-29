@@ -53,9 +53,14 @@ def remove_task(task):
 
 def process_task(task, client):
     global robot_busy
+    time.sleep(0.5)
+    resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "busy"}, timeout=1)
+    time.sleep(0.5)
     task_type, cid, col_letter = task
     robot_busy = True
 
+    payload = {"task": f"{task[0]} {task[1]} {task[2]}"}
+    resp = requests.post("http://127.0.0.1:1880/task-update", json=payload, timeout=1)
     try:
         if task_type == 2:
             try:
@@ -89,6 +94,11 @@ def process_task(task, client):
         # ✅ Requeue task to keep it in task.json
         requeue_task(task)
 
+        # Value error exit code
+        if isinstance(e, ValueError) and "Unstable or invalid weight" in str(e):
+            print("❌ Critical balance error — stopping robot executor.")
+            exit(1)
+
         # ✅ Stop the robot executor if TCS error is critical
         if "TCS error" in str(e):
             print("❌ Fatal TCS error encountered — stopping robot executor.")
@@ -96,6 +106,14 @@ def process_task(task, client):
 
     finally:
         robot_busy = False
+        time.sleep(0.5)
+        resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "idle"}, timeout=1)
+        time.sleep(0.5)
+        payload = {"task": ""}
+        resp = requests.post("http://127.0.0.1:1880/task-update", json=payload, timeout=1)
+        time.sleep(0.5)
+        payload = {"weight": 0.0}
+        res = requests.post("http://127.0.0.1:1880/weight-update", json=payload, timeout=1)
 
 
 
@@ -140,10 +158,23 @@ def keep_robot_alive(client):
 
 
 def main():
+
+    payload = {"task": ""}
+    resp = requests.post("http://127.0.0.1:1880/task-update", json=payload, timeout=1)
+    time.sleep(0.5)
+    payload = {"weight": 0.0}
+    res = requests.post("http://127.0.0.1:1880/weight-update", json=payload, timeout=1)
+
     global robot_busy
+    time.sleep(0.5)
+    resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "busy"}, timeout=1)
+    time.sleep(0.5)
     print("⚙️  Initializing robot...")
     client = robot_setup.setup_robot()
     print("✅ Robot ready. Starting task loop.")
+    time.sleep(0.5)
+    resp = requests.post("http://127.0.0.1:1880/robot-status", json={"status": "idle"}, timeout=1)
+    time.sleep(0.5)
 
     # Start keep-alive thread
     threading.Thread(target=keep_robot_alive, args=(client,), daemon=True).start()
