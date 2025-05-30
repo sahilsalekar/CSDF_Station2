@@ -7,6 +7,10 @@ import failvial
 from plc_qr_seq import plc_qr_seq
 from dashboard import Dashboard
 import json
+import balance_check
+import balance_pick
+import balance_place
+from balance_tcp import BalanceTCPClient
 
 dash = Dashboard()
 
@@ -78,6 +82,11 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand("moveoneaxis 1 1017.83 1")
                     reply = client.SendCommand("waitforeom")
 
+                    # Balance Check
+                    balance_check.balance_check(client)
+
+                    time.sleep(0.5)
+
                     # QR Check
                     print("Executing qr_check")
                     qr_check.qr_check(client)
@@ -86,7 +95,8 @@ def run(client, pallet_row, pallet_col):
 
                     # in vial tray
                     print("Exeuting in_vial_tray")
-                    in_vial_tray.in_vial_tray(client)
+                    if not in_vial_tray.in_vial_tray(client):
+                        return
 
                     time.sleep(0.5)
 
@@ -125,9 +135,35 @@ def run(client, pallet_row, pallet_col):
                             print("Executing fail vial")
                             failvial.failvial(client)
                             return
+                        
+                        # balance place
+                        balance_place.balance_place(client)
+
+                        time.sleep(0.5)
+
+                        # balance weigh
+                        balance = BalanceTCPClient()
+                        weight_mg = balance.read_weight()
+                        balance.disconnect()
+
+                        time.sleep(0.5)
+
+                        # send weight
+                        resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
+
+                        time.sleep(0.5)
+
+                        # balance pick
+                        balance_pick.balance_pick(client)
+
+                        time.sleep(0.5)
 
                         
                         client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+                        reply = client.SendCommand("waitforeom")
+
+                        # Below Row
+                        client.SendCommand("moveoneaxis 1 319.49 1")
                         reply = client.SendCommand("waitforeom")
 
                         # safe postion
@@ -154,9 +190,20 @@ def run(client, pallet_row, pallet_col):
                         reply = client.SendCommand("waitforeom")
 
                         #Intiate Experiment
-                        dash.initiate_experiment(exp_id, cid, rid)
-                        print(f"Experiment started at {cid} {rid} with experiment id {exp_id}")
-
+                        max_retries = 3
+                        for attempt in range(1, max_retries + 1):
+                            try:
+                                dash.initiate_experiment(exp_id, cid, rid)
+                                print(f"✅ Experiment started at {cid} {rid} with experiment id {exp_id}")
+                                break  # success, exit retry loop
+                            except Exception as e:
+                                print(f"[WARN] Attempt {attempt}: Failed to initiate experiment (exp_id={exp_id}) — {e}")
+                                if attempt < max_retries:
+                                    print("⏳ Retrying in 5 seconds...")
+                                    time.sleep(5)
+                                else:
+                                    print("❌ All retries failed — stopping execution.")
+                                    return
                         #append status
                         append_status(exp_id, cid, rid)
 
@@ -167,6 +214,11 @@ def run(client, pallet_row, pallet_col):
 
                     else:
                         print(f"Scan Failed: {qr_data.get('data')}, Error: {qr_data.get('error')}")
+                        qr_pick_vial.qr_pick_vial(client)
+                        time.sleep(0.5)
+                        failvial.failvial(client)
+                        return
+
 
                 else:
                     client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
@@ -175,18 +227,22 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand(f"movej 1 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    raise RuntimeError(f"Vial Present at {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
+                    #raise RuntimeError(f"Vial Present at {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
+                    return
 
             else:
                 print(f"Failed to move to Crystalline {sta_num}! Stopping Execution")
-                raise RuntimeError(f"Failed to move to Crystalline {sta_num}! Stopping Execution")
+                #raise RuntimeError(f"Failed to move to Crystalline {sta_num}! Stopping Execution")
+                return
 
         else:
             print(f"Failed to set pallet index {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
-            raise RuntimeError(f"Failed to set pallet index {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
+            #raise RuntimeError(f"Failed to set pallet index {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
+            return
 
     except Exception as e:
         print(f'[ERROR] In {sta_num} {pallet_row} {pallet_col} {e}')
+        raise
 
     finally:
         #Home position

@@ -95,7 +95,8 @@ def run(client, pallet_row, pallet_col):
 
                     # in vial tray
                     print("Exeuting in_vial_tray")
-                    in_vial_tray.in_vial_tray(client)
+                    if not in_vial_tray.in_vial_tray(client):
+                        return
 
                     time.sleep(0.5)
 
@@ -244,7 +245,7 @@ def run(client, pallet_row, pallet_col):
 
     except Exception as e:
         print(f'[ERROR] In {sta_num} {cid} {rid} {e}')
-        return
+        raise
     
     finally:
         #Home position

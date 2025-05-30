@@ -70,14 +70,14 @@ def in_vial_tray(client):
                     # Safe Pos
                     client.SendCommand("moveoneaxis 4 120.095 1")
                     reply = client.SendCommand("waitforeom")
-                    break  # Exit loop if vial is found
+                    return True # Vial Found
                 else:
                     print("Vial not present. Retrying...")
 
                     if tray_pos == 8:
                         client.SendCommand("moveoneaxis 4 120.095 1")
                         reply = client.SendCommand("waitforeom")
-                        return
+                        return False # No vial found
                         #raise RuntimeError("No Vial Found in - in tray!")
 
         else:
