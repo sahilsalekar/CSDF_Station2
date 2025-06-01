@@ -152,7 +152,7 @@ def run(client, pallet_row, pallet_col):
                     dash.mark_reactor_free(cid, letter)
                     print(f"Reactor {cid} {letter} marked free")
 
-                    response = requests.post("http://130.159.93.21:8005/initiate_CSDF_Station3", json={"type": "Crystalline"})
+                    response = requests.post("http://localhost:8005/initiate_CSDF_Station3", json={"type": "Crystalline"})
 
                     print(f"Crystalline {sta_num} {pallet_row} {pallet_col} Complete")    
 

@@ -12,7 +12,7 @@ ADD_TASK_API = "http://localhost:8000/add_task"
 REQUEUE_API = "http://localhost:8000/requeue_task"
 REMOVE_API = "http://localhost:8000/remove_task"
 TRAY_API = "http://localhost:8002/is_tray_ready"
-SEND_VIAL_API = "http://130.159.93.21:8005/send_vial"  
+SEND_VIAL_API = "http://localhost:8005/send_vial"  
 
 RID_TO_LETTER = "ABCDEFGH"
 
@@ -114,7 +114,8 @@ def process_task(task, client):
         time.sleep(0.5)
         payload = {"weight": 0.0}
         res = requests.post("http://127.0.0.1:1880/weight-update", json=payload, timeout=1)
-
+        payload = {"qrdata": ""}
+        resp = requests.post("http://127.0.0.1:1880/qr-update", json=payload, timeout=1)
 
 
 def schedule_new_experiment():

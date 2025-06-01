@@ -1,5 +1,6 @@
 import time
 import S71200_PLC
+import requests
 
 def plc_qr_seq():
     print("Executing PLC QR Sequence")
@@ -25,6 +26,9 @@ def plc_qr_seq():
         if QR_Comp and not QR_Error:
             QR_Data = S71200_PLC.read_db_string(1, 136, 20)
             print(f"QR Scan Successful! : {QR_Data}")
+
+            payload = {"qrdata": f"{QR_Data}"}        
+            resp = requests.post("http://127.0.0.1:1880/qr-update", json=payload, timeout=1)
 
             S71200_PLC.write_memory_bit(10, 1, True)
             time.sleep(1)
