@@ -53,7 +53,7 @@ def balance_place(client):
                 if not Shield_sensor:
 
 
-                    client.SendCommand("movec 1 598.235 360.373 845.0 89.743 90 180 1") # Balance point
+                    client.SendCommand("movec 1 598.235 360.373 850.0 89.743 90 180 1") # Balance point
                     reply = client.SendCommand("waitforeom")
                     if reply == "0":
                         print("Robot moved to Balance point.")
