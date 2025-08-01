@@ -174,10 +174,10 @@ def run(client, pallet_row, pallet_col):
                         client.SendCommand("graspplate -119 60 10")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand("moveoneaxis 1 #849.586 1")
+                        client.SendCommand("moveoneaxis 1 854.994 1")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand("moveoneaxis 1 #1002.71 1")
+                        client.SendCommand("moveoneaxis 1 1002.71 1")
                         reply = client.SendCommand("waitforeom")
 
                         # safe postion

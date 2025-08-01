@@ -13,27 +13,23 @@ def qr_pick_vial(client):
         if reply == "0":
             print("Robot moved to QR.")
 
-            client.SendCommand("movej 1 674.255 11.718 316.242 121.271 109.165 999.837") # QR APP
+            command = client.SendCommand("pickplate 8")
             reply = client.SendCommand("waitforeom")
-        
-            client.SendCommand("graspplate 117 60 10")
-            reply = client.SendCommand("waitforeom")
-        
-            client.SendCommand("movec 1 1542.646 67.995 486.104 89.232 90 180 2") # QR Point
-            reply = client.SendCommand("waitforeom")
-            if reply == "0":
-                print("Robot moved to QR point.")
 
-                client.SendCommand("graspplate -117 60 10")
+            if command == '0 -1':
+
+                client.SendCommand("moveoneaxis 4 121.271 1")
                 reply = client.SendCommand("waitforeom")
-
-                client.SendCommand("movec 1 1542.649 67.995 674.255 89.231 90 180 2") # QR APP
-                reply = client.SendCommand("waitforeom")
-
+        
             else:
-                print("Robot did not move to QR point.")
-                raise RuntimeError("Robot Failed to move to qr point! Stopping Execution.")
 
+                client.SendCommand("moveoneaxis 4 121.271 1")
+                reply = client.SendCommand("waitforeom")
+
+                client.SendCommand("movej 1 732.082 -2.902 180.537 178.063 109.165 999.837")
+                reply = client.SendCommand("waitforeom")
+
+                raise           
             
         else:
             print("Robot did not move to QR.")

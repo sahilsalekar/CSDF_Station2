@@ -37,10 +37,10 @@ def balance_place(client):
             if reply == "0":
                 print("Robot moved to Balance.")
 
-                client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 103.064 343.38") # Safe Pos Balance
+                client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
                 reply = client.SendCommand("waitforeom")
                 
-                client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 109.165 343.38") # Balance approach
+                client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 109.165 343.377") # Balance approach
                 reply = client.SendCommand("waitforeom")
 
                 # PLC code to open Balance Shield
@@ -52,26 +52,13 @@ def balance_place(client):
 
                 if not Shield_sensor:
 
-
-                    client.SendCommand("movec 1 598.235 360.373 850.0 89.743 90 180 1") # Balance point
-                    reply = client.SendCommand("waitforeom")
-                    if reply == "0":
-                        print("Robot moved to Balance point.")
-                    else:
-                        print("Robot did not move to Balance point.")
-                        raise RuntimeError("Robot Failed to move to balance point! Stopping Execution.")
-
-                    command = client.SendCommand("graspplate 117 60 10")
+                    client.SendCommand("placeplate 9") # Balance point
                     reply = client.SendCommand("waitforeom")
 
-                    
-                    client.SendCommand("movej 1 1022.981 -16.638 113.639 -7.258 115.873 343.38")
-                    reply = client.SendCommand("waitforeom")
-
-                    # client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 103.064 343.38") # Safe Pos Balance
+                    # client.SendCommand("movej 1 1022.981 -1.398 124.000 179.77 103.064 343.377") # Safe Pos Balance
                     # reply = client.SendCommand("waitforeom")
 
-                    # client.SendCommand("movej 1 1022.981 -2.902 180.537 178.063 103.542 343.38") # Safe Pos Balance
+                    # client.SendCommand("movej 1 1022.981 -2.902 180.537 178.063 103.542 343.377") # Safe Pos Balance
                     # reply = client.SendCommand("waitforeom")
 
                 

@@ -128,7 +128,7 @@ def schedule_new_experiment():
             return
 
         exp_reply = dash.check_for_experiments()
-        if exp_reply and exp_reply.get("more"):
+        if exp_reply and exp_reply.get("experiment"):
             free_reply = dash.get_free_reactor()
             if free_reply and free_reply.get("free"):
                 cid = free_reply["cid"]
