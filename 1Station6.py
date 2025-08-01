@@ -169,6 +169,17 @@ def run(client, pallet_row, pallet_col):
                         client.SendCommand(f"placeplate {sta_num}")
                         reply = client.SendCommand("waitforeom") 
 
+                        # push move
+                        # close gripper
+                        client.SendCommand("graspplate -119 60 10")
+                        reply = client.SendCommand("waitforeom")
+
+                        client.SendCommand("moveoneaxis 1 #849.586 1")
+                        reply = client.SendCommand("waitforeom")
+
+                        client.SendCommand("moveoneaxis 1 #1002.71 1")
+                        reply = client.SendCommand("waitforeom")
+
                         # safe postion
                         client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom")

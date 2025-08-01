@@ -54,11 +54,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 1 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 1 -892.968 589.776 172.411 89.663 90 180 1 ")
+        client.SendCommand("palletorigin 1 -893.033 592.975 172.411 90.333 90 -180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 1 2 -772.74 590.165 172.411")
+        client.SendCommand("palletx 1 2 -772.332 592.811 172.411")
         time.sleep(0.5)
-        client.SendCommand("pallety 1 4 -893.45 319.839 172.411")
+        client.SendCommand("pallety 1 4 -892.728 321.908 172.411")
         time.sleep(0.5)
 
         # Station 2
@@ -66,11 +66,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 2 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 2 66.082 596.507 178.247 89.725 90 180 1 ")
+        client.SendCommand("palletorigin 2 64.353 592.494 173.352 90.688 90 -180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 2 2 186.901 595.591 178.247")
+        client.SendCommand("palletx 2 2 184.817 592.337 173.352")
         time.sleep(0.5)
-        client.SendCommand("pallety 2 4 62.572 325.662 178.247")
+        client.SendCommand("pallety 2 4 62.749 323.349 173.352")
         time.sleep(0.5)
 
          # Station 3
@@ -78,11 +78,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 3 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 3 1006.378 583.147 174.371 88.251 90 180 1 ")
+        client.SendCommand("palletorigin 3 1008.034 583.95 175.372 90.795 90 -180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 3 2 1128.294 584.229 174.371")
+        client.SendCommand("palletx 3 2 1129.201 584.012 175.372")
         time.sleep(0.5)
-        client.SendCommand("pallety 3 4 1008.841 314.213 174.371")
+        client.SendCommand("pallety 3 4 1008.859 314.509 175.372")
         time.sleep(0.5)
 
         # Station 4
@@ -90,11 +90,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 4 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 4 -888.25 584.674 841.587 91.262 90 -180 1 ")
+        client.SendCommand("palletorigin 4 -889.645 590.431 838.157 90.028 90 -180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 4 2 -768.353 584.815 841.587")
+        client.SendCommand("palletx 4 2 -769.223 589.615 838.157")
         time.sleep(0.5)
-        client.SendCommand("pallety 4 4 -889.187 315.351 841.587")
+        client.SendCommand("pallety 4 4 -890.725 321.376 838.157")
         time.sleep(0.5)
 
         # Station 5
@@ -102,11 +102,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 5 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 5 63.045 587.438 844.044 93.253 90 -180 1 ")
+        client.SendCommand("palletorigin 5 61.232 589.999 843.365 89.777 90 180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 5 2 182.671 588.389 844.044")
+        client.SendCommand("palletx 5 2 182.308 591.466 843.365")
         time.sleep(0.5)
-        client.SendCommand("pallety 5 4 62.802 318.069 844.044")
+        client.SendCommand("pallety 5 4 60.863 320.831 843.365")
         time.sleep(0.5)
 
         # Station 6
@@ -114,11 +114,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 6 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 6 1009.203 587.387 846.66 91.997 90 -180 1 ")
+        client.SendCommand("palletorigin 6 1007.598 590.609 847.583 88.636 90 180 1 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 6 2 1128.506 587.665 846.66")
+        client.SendCommand("palletx 6 2 1128.859 589.333 847.583")
         time.sleep(0.5)
-        client.SendCommand("pallety 6 4 1006.367 318.266 846.6")
+        client.SendCommand("pallety 6 4 1004.118 319.997 847.583")
         time.sleep(0.5)
 
         # Station 7
@@ -126,12 +126,36 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 7 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 7 1342.333 -425.911 749.383 -88.192 90 180 2 ")
+        client.SendCommand("palletorigin 7 1277.737 -433.108 749.614 -89.938 90 180 2 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 7 2 1341.848 -460.665 749.383")
+        client.SendCommand("palletx 7 2 1277.898 -464.614 749.614")
         time.sleep(0.5)
-        client.SendCommand("pallety 7 4 1249.354 -426.55 749.383")
+        client.SendCommand("pallety 7 4 1187.184 -432.869 749.614")
         time.sleep(0.5)
+
+        # Station 8 qr
+        client.SendCommand("rail 8 999.837")
+        time.sleep(0.5)
+        client.SendCommand("stationtype 8 1 1 150 5 0")
+        time.sleep(0.5)
+        client.SendCommand("palletorigin 8 1541.68 69.65 484.915 88.446 90 180 2 ")
+        # time.sleep(0.5)
+        # client.SendCommand("palletx 8 2 1277.898 -464.614 749.614")
+        # time.sleep(0.5)
+        # client.SendCommand("pallety 8 4 1187.184 -432.869 749.614")
+        # time.sleep(0.5)
+
+        # Station 9 balance
+        client.SendCommand("rail 9 343.409")
+        time.sleep(0.5)
+        client.SendCommand("stationtype 9 1 1 150 5 0")
+        time.sleep(0.5)
+        client.SendCommand("palletorigin 9 595.824 361.915 847.495 90.836 90 -180 1 ")
+        # time.sleep(0.5)
+        # client.SendCommand("palletx 9 2 1277.898 -464.614 749.614")
+        # time.sleep(0.5)
+        # client.SendCommand("pallety 9 4 1187.184 -432.869 749.614")
+        # time.sleep(0.5)
 
        
 
@@ -142,7 +166,3 @@ def setup_robot():
         #                              
         #client.Close()
         raise
-
-
-
-    

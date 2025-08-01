@@ -2,7 +2,7 @@ import requests
 from datetime import datetime
 
 class Dashboard:
-    def __init__(self, base_url='http://130.159.137.194:8064'):
+    def __init__(self, base_url='http://130.159.92.210/api'):
         self.base_url = base_url
 
     def get_free_reactor(self):

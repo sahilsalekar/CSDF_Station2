@@ -10,21 +10,21 @@ def Vial_to_ventionplace(client):
     try:
 
         # Robot to vention Pos
-        client.SendCommand("moveoneaxis 6 -951.417 1")
+        client.SendCommand("moveoneaxis 6 -743.301 1")
         reply = client.SendCommand("waitforeom")
         if reply == "0":
             print("Robot moved to vention_pos.")
-            client.SendCommand("movej 1 934.068 -75.402 315.594 28.535 109.165 -951.417")
+            client.SendCommand("movej 1 887.921 -57.195 305.335 21.405 109.165 -743.301") # (J5 109.165)
             reply = client.SendCommand("waitforeom")
         
-            client.SendCommand("movec 1 -1022.533 -702.976 760.924 -91.275 90 -180 2")
+            client.SendCommand("movec 1 -688.556 -682.052 761.624 -90.455 90 -180 2")
             reply = client.SendCommand("waitforeom")
         
 
             client.SendCommand("graspplate 117 60 10")
             reply = client.SendCommand("waitforeom")
 
-            client.SendCommand("movec 1 -1022.546 -702.976 934.042 -91.272 90 -180 2")
+            client.SendCommand("movec 1 -688.571 -682.051 887.92 -90.454 90 -180 2")
             reply = client.SendCommand("waitforeom")
 
             # Home Pos
