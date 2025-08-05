@@ -143,19 +143,52 @@ def run(client, pallet_row, pallet_col):
 
                         # balance weigh
                         balance = BalanceTCPClient()
-                        weight_mg = balance.read_weight()
+                        result = balance.read_weight()
                         balance.disconnect()
 
                         time.sleep(0.5)
 
-                        # send weight
-                        resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
+                        if result["success"]:
+                            weight_mg = result["data"]
+                            # send weight
+                            resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
 
-                        time.sleep(0.5)
+                            time.sleep(0.5)
 
-                        # balance pick
-                        balance_pick.balance_pick(client)
+                            # balance pick
+                            balance_pick.balance_pick(client)
 
+                        else:
+                            print("Retrying weight read...")
+                            # balance weigh
+                            balance = BalanceTCPClient()
+                            result = balance.read_weight()
+                            balance.disconnect()
+
+                            if result["success"]:
+                                weight_mg = result["data"]
+                                # send weight
+                                resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
+
+                                time.sleep(0.5)
+
+                                # balance pick
+                                balance_pick.balance_pick(client)
+
+                            else:
+                                print("Error Reading weight")
+
+                                # balance pick
+                                balance_pick.balance_pick(client)
+
+                                time.sleep(0.5)
+
+                                # fail vial
+                                print("Executing fail vial")
+                                failvial.failvial(client)
+                                return
+
+                        
                         time.sleep(0.5)
                         
                         client.SendCommand(f"moveoneaxis 6 {axis_6} 1")

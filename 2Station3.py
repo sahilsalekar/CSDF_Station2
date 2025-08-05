@@ -70,6 +70,10 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand("moveoneaxis 1 1017.83 1")
                     reply = client.SendCommand("waitforeom")
 
+                    # mark reactor free
+                    dash.mark_reactor_free(cid, letter)
+                    print(f"Reactor {cid} {letter} marked free")
+
                     # Qr place vial
                     print("Executing qr_place_vial")
                     qr_place_vial.qr_place_vial(client)
@@ -120,18 +124,50 @@ def run(client, pallet_row, pallet_col):
 
                     # balance weigh
                     balance = BalanceTCPClient()
-                    weight_mg = balance.read_weight()
+                    result = balance.read_weight()
                     balance.disconnect()
 
                     time.sleep(0.5)
 
-                    # send weight
-                    resp = dash.add_vial_mass(named_time="END", mass=weight_mg, exp_id=exp_id)
+                    if result["success"]:
+                        weight_mg = result["data"]
+                        # send weight
+                        resp = dash.add_vial_mass(named_time="END", mass=weight_mg, exp_id=exp_id)
 
-                    time.sleep(0.5)
+                        time.sleep(0.5)
 
-                    # balance pick
-                    balance_pick.balance_pick(client)
+                        # balance pick
+                        balance_pick.balance_pick(client)
+
+                    else:
+                        print("Retrying weight read...")
+                        # balance weigh
+                        balance = BalanceTCPClient()
+                        result = balance.read_weight()
+                        balance.disconnect()
+
+                        if result["success"]:
+                            weight_mg = result["data"]
+                            # send weight
+                            resp = dash.add_vial_mass(named_time="END", mass=weight_mg, exp_id=exp_id)
+
+                            time.sleep(0.5)
+
+                            # balance pick
+                            balance_pick.balance_pick(client)
+
+                        else:
+                            print("Error Reading weight")
+
+                            # balance pick
+                            balance_pick.balance_pick(client)
+
+                            time.sleep(0.5)
+
+                            # fail vial
+                            print("Executing fail vial")
+                            failvial.failvial(client)
+                            return
 
                     time.sleep(0.5)
 
@@ -148,9 +184,6 @@ def run(client, pallet_row, pallet_col):
                     RID_TO_LETTER = "ABCDEFGH"
                     letter = RID_TO_LETTER[rid]
                     
-                    # mark reactor free
-                    dash.mark_reactor_free(cid, letter)
-                    print(f"Reactor {cid} {letter} marked free")
 
                     response = requests.post("http://localhost:8005/initiate_CSDF_Station3")
 

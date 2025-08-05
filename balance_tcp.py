@@ -14,8 +14,8 @@ class BalanceTCPClient:
         """Establish connection to the balance."""
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.settimeout(self.timeout)
             self.sock.connect((self.ip, self.port))
+            self.sock.settimeout(self.timeout)
             print(f"Connected to balance at {self.ip}:{self.port}")
         except socket.error as e:
             raise
@@ -63,16 +63,19 @@ class BalanceTCPClient:
         time.sleep(0.1)
         return self.read_response()
 
-    def read_weight(self) -> float:
-        """Send 'S' command to read weight and return value in mg (as float)."""
+    def read_weight(self) -> dict:
+        """Send 'S' command to read weight and return result as a dictionary."""
         response = self.send_and_receive("S")
         print(f"Raw response: {response}")
 
         try:
             if not response.startswith("S S"):
-                raise ValueError(f"Unstable or invalid weight reading: '{response}'")
+                return {
+                    "success": False,
+                    "data": None,
+                    "error": f"Unstable or invalid weight reading: '{response}'"
+                }
 
-            # Use regex to extract the number (e.g., 0.00008 from 'S S    0.00008 g')
             import re
             match = re.search(r"([-+]?\d*\.\d+|\d+)", response)
             if match:
@@ -81,12 +84,26 @@ class BalanceTCPClient:
                 print(f"Weight in mg: {weight_mg}")
                 payload = {"weight": weight_mg}
                 res = requests.post("http://127.0.0.1:1880/weight-update", json=payload, timeout=1)
-                return weight_mg
+                return {
+                    "success": True,
+                    "data": weight_mg,
+                    "error": None
+                }
             else:
-                raise ValueError("No numeric weight found in response.")
+                return {
+                    "success": False,
+                    "data": None,
+                    "error": "No numeric weight found in response."
+                }
+
         except Exception as e:
             print(f"Error reading weight: {e}")
-            raise  # Propagate the exception to stop the main program
+            return {
+                "success": False,
+                "data": None,
+                "error": str(e)
+            }
+
 
 
     def zero_balance(self) -> str:
