@@ -63,6 +63,10 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand(f"movej 1 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
+                    # convert rid to letter
+                    RID_TO_LETTER = "ABCDEFGH"
+                    letter = RID_TO_LETTER[rid]
+                    
                     # mark reactor free
                     dash.mark_reactor_free(cid, letter)
                     print(f"Reactor {cid} {letter} marked free")
@@ -171,12 +175,7 @@ def run(client, pallet_row, pallet_col):
 
                     # Home position
                     client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
-                    reply = client.SendCommand("waitforeom")
-
-                    # convert rid to letter
-                    RID_TO_LETTER = "ABCDEFGH"
-                    letter = RID_TO_LETTER[rid]
-                    
+                    reply = client.SendCommand("waitforeom")                  
 
                     response = requests.post("http://localhost:8005/initiate_CSDF_Station3")
 
