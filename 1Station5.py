@@ -17,7 +17,23 @@ dash = Dashboard()
 sta_num = 5
 axis_6 = -8.886
 
-
+# Helper function for qr retry
+def read_qr_with_retry(max_tries=2, delay=0.5):
+    """
+    Try reading QR up to `max_tries` times. 
+    Returns the final qr_data dict from plc_qr_seq().
+    """
+    last = None
+    for attempt in range(1, max_tries + 1):
+        qr_data = plc_qr_seq()
+        if qr_data.get("success"):
+            return qr_data
+        print(f"[WARN] QR scan failed (attempt {attempt}/{max_tries}). "
+              f"Error: {qr_data.get('error') or qr_data.get('data')}")
+        last = qr_data
+        if attempt < max_tries:
+            time.sleep(delay)
+    return last or {"success": False, "error": "Unknown QR error"}
 
 # Add task to status.json
 def append_status(exp_id, cid, rid):
@@ -102,26 +118,26 @@ def run(client, pallet_row, pallet_col):
 
                     # qr plc sequence
                     print("Executing qr plc sequence")
-                    qr_data = plc_qr_seq()
+                    qr_data = read_qr_with_retry(max_tries=2, delay=0.5)
 
                     if qr_data.get("success"):
                         print(f"Scan Okay: {qr_data['data']}")
-
                         vial_id = qr_data['data']
                         exp_response = dash.get_experiment_id(vial_id)
 
                         if exp_response and exp_response.get("found"):
-                            exp_id = exp_response["exp_id"]  # ✅ Now this holds the actual exp_id number
+                            exp_id = exp_response["exp_id"]
                             print(f"Experiment found for vial {vial_id}: exp_id = {exp_id}")
-                            # ✅ You can now use exp_id later in your code
+
                             # qr pick vial
                             print("Executing qr_pick_vial")
                             qr_pick_vial.qr_pick_vial(client)
                             time.sleep(0.5)
-                            
+
                         else:
-                            exp_id = None  # Or leave it unset
+                            exp_id = None
                             print(f"No experiment found for vial {vial_id}.")
+
                             # qr pick vial
                             print("Executing qr_pick_vial")
                             qr_pick_vial.qr_pick_vial(client)
