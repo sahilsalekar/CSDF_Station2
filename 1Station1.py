@@ -236,20 +236,22 @@ def run(client, pallet_row, pallet_col):
                         client.SendCommand("moveoneaxis 1 183.678 1")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand("moveoneaxis 1 190 1")
+                        client.SendCommand("moveoneaxis 1 195 1")
                         reply = client.SendCommand("waitforeom")
+
+                        time.sleep(5)
 
                         # Check vial present before starting exp
                         # open gripper
-                        client.SendCommand("graspplate 117 60 10")
-                        reply = client.SendCommand("waitforeom")
-                        if reply == "0 0":
-                            client.SendCommand("moveoneaxis 1 172.411 2")
+                        command = client.SendCommand("graspplate 117 60 10")
+                        #reply = client.SendCommand("waitforeom")
+                        if command == "0 0":
+                            command = client.SendCommand("moveoneaxis 1 172.411 2")
                             reply = client.SendCommand("waitforeom")
-                            if reply == "0":
-                                client.SendCommand("graspplate -117 60 10")
-                                reply = client.SendCommand("waitforeom")
-                                if reply == "0 -1":
+                            if command == "0":
+                                command = client.SendCommand("graspplate -117 60 10")
+                                #reply = client.SendCommand("waitforeom")
+                                if command == "0 -1":
                                     print("Vial Present Starting Experiment")
                                     # open gripper
                                     client.SendCommand("graspplate 117 60 10")
