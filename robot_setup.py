@@ -26,6 +26,11 @@ def setup_robot():
         if is_homed == "0 0":
             client.SendCommand("home")
         
+        # Setting Profile speed 2
+
+        client.SendCommand("profile 2 30 0 100 100 0.1 0.1 10 0")
+        time.sleep(0.5)
+        
         # Moving to Home Position
 
         client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
