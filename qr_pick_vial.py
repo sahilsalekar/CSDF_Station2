@@ -18,16 +18,19 @@ def qr_pick_vial(client):
 
             if command == '0 -1':
 
-                client.SendCommand("moveoneaxis 4 121.271 1")
-                reply = client.SendCommand("waitforeom")
+                #client.SendCommand("moveoneaxis 4 121.271 1")
+                #reply = client.SendCommand("waitforeom")
+                print("Vial Fount At QR")
         
             else:
 
-                client.SendCommand("moveoneaxis 4 121.271 1")
-                reply = client.SendCommand("waitforeom")
+                #client.SendCommand("moveoneaxis 4 121.271 1")
+                #reply = client.SendCommand("waitforeom")
 
                 client.SendCommand("movej 1 732.082 -2.902 180.537 178.063 109.165 999.837")
                 reply = client.SendCommand("waitforeom")
+
+                print("Vial Not Found At QR")
 
                 raise           
             

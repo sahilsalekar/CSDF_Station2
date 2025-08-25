@@ -15,8 +15,8 @@ def qr_place_vial(client):
             client.SendCommand("movej 1 674.255 11.718 316.242 121.271 109.165 999.837") # QR APP
             reply = client.SendCommand("waitforeom")
             
-            client.SendCommand("moveoneaxis 4 -238.744 1")
-            reply = client.SendCommand("waitforeom")
+            #client.SendCommand("moveoneaxis 4 -238.744 1")
+            #reply = client.SendCommand("waitforeom")
         
             command = client.SendCommand("placeplate 8")
             reply = client.SendCommand("waitforeom")
