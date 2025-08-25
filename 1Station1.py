@@ -91,10 +91,10 @@ def run(client, pallet_row, pallet_col):
                 if reply == "0 0":
                     print("Vial not present")
 
-                    client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand(f"movej 1 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
                     client.SendCommand("moveoneaxis 1 1017.83 1")
@@ -217,10 +217,10 @@ def run(client, pallet_row, pallet_col):
                         reply = client.SendCommand("waitforeom")
 
                         # safe postion
-                        client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                        client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom") 
 
-                        client.SendCommand(f"movej 1 319.49 -1.398 124 -0.849 103.081 {axis_6}")
+                        client.SendCommand(f"movej 2 319.49 -1.398 124 -0.849 103.081 {axis_6}")
                         reply = client.SendCommand("waitforeom")
 
                         time.sleep(0.5)
@@ -236,14 +236,75 @@ def run(client, pallet_row, pallet_col):
                         client.SendCommand("moveoneaxis 1 183.678 1")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand("moveoneaxis 1 307.79 1")
+                        client.SendCommand("moveoneaxis 1 190 1")
                         reply = client.SendCommand("waitforeom")
+
+                        # Check vial present before starting exp
+                        # open gripper
+                        client.SendCommand("graspplate 117 60 10")
+                        reply = client.SendCommand("waitforeom")
+                        if reply == "0 0":
+                            client.SendCommand("moveoneaxis 1 172.411 2")
+                            reply = client.SendCommand("waitforeom")
+                            if reply == "0":
+                                client.SendCommand("graspplate -117 60 10")
+                                reply = client.SendCommand("waitforeom")
+                                if reply == "0 -1":
+                                    print("Vial Present Starting Experiment")
+                                    # open gripper
+                                    client.SendCommand("graspplate 117 60 10")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand("moveoneaxis 1 307.79 1")
+                                    reply = client.SendCommand("waitforeom")
+
+                                else:
+                                    print("Vial Not Present Stopping Execution")
+                                    # open gripper
+                                    client.SendCommand("graspplate 117 60 10")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand("moveoneaxis 1 307.79 1")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    # safe postion
+                                    client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand(f"movej 2 319.49 -1.398 184.317 179.77 103.064 {axis_6}")
+                                    reply = client.SendCommand("waitforeom")
+                                    return
+                            else:
+                                print("Robot Didn't Reach Vial Point. Stoping Execution")
+                                client.SendCommand("moveoneaxis 1 307.79 1")
+                                reply = client.SendCommand("waitforeom")
+
+                                # safe postion
+                                client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                                reply = client.SendCommand("waitforeom")
+
+                                client.SendCommand(f"movej 2 319.49 -1.398 184.317 179.77 103.064 {axis_6}")
+                                reply = client.SendCommand("waitforeom")
+                                return
+                        else:
+                            print("Gripper Didn't Open. Stopping Execution")
+
+                            client.SendCommand("moveoneaxis 1 307.79 1")
+                            reply = client.SendCommand("waitforeom")
+
+                            # safe postion
+                            client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                            reply = client.SendCommand("waitforeom")
+
+                            client.SendCommand(f"movej 2 319.49 -1.398 184.317 179.77 103.064 {axis_6}")
+                            reply = client.SendCommand("waitforeom")
+                            return
 
                         # safe postion
-                        client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                        client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand(f"movej 1 319.49 -1.398 184.317 179.77 103.064 {axis_6}")
+                        client.SendCommand(f"movej 2 319.49 -1.398 184.317 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom")
 
                         #Home position
@@ -283,10 +344,10 @@ def run(client, pallet_row, pallet_col):
 
 
                 else:
-                    client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand(f"movej 1 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
                     failvial.failvial(client)
