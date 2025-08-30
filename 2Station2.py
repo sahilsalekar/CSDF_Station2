@@ -79,10 +79,10 @@ def run(client, pallet_row, pallet_col):
                 if reply == "0 -1":
                     print("Vial present")
 
-                    client.SendCommand(f"movej 1 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -1.398 124.000 179.77 103.064 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand(f"movej 1 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
+                    client.SendCommand(f"movej 2 319.49 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
                     client.SendCommand("moveoneaxis 1 1017.83 1")

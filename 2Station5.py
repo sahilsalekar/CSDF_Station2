@@ -75,10 +75,10 @@ def run(client, pallet_row, pallet_col):
                 if reply == "0 -1":
                     print("Vial present")
 
-                    client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                    client.SendCommand(f"movej 2 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand(f"movej 1 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
+                    client.SendCommand(f"movej 2 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
                     
                     # convert rid to letter

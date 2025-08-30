@@ -206,10 +206,10 @@ def run(client, pallet_row, pallet_col):
                         reply = client.SendCommand("waitforeom")
 
                         # safe postion
-                        client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                        client.SendCommand(f"movej 2 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom") 
 
-                        client.SendCommand(f"movej 1 1021.852 -1.398 124 -0.849 103.081 {axis_6}")
+                        client.SendCommand(f"movej 2 1021.852 -1.398 124 -0.849 103.081 {axis_6}")
                         reply = client.SendCommand("waitforeom")
 
                         time.sleep(0.5)
@@ -225,8 +225,71 @@ def run(client, pallet_row, pallet_col):
                         client.SendCommand("moveoneaxis 1 849.586 1")
                         reply = client.SendCommand("waitforeom")
 
-                        client.SendCommand("moveoneaxis 1 1002.71 1")
+                        client.SendCommand("moveoneaxis 1 861 1")
                         reply = client.SendCommand("waitforeom") 
+
+                        time.sleep(5)
+
+                        # Check vial present before starting exp
+                        # open gripper
+                        command = client.SendCommand("graspplate 117 60 10")
+                        #reply = client.SendCommand("waitforeom")
+                        if command == "0 0":
+                            command = client.SendCommand("moveoneaxis 1 838.157 2")
+                            reply = client.SendCommand("waitforeom")
+                            if command == "0":
+                                command = client.SendCommand("graspplate -117 60 10")
+                                #reply = client.SendCommand("waitforeom")
+                                if command == "0 -1":
+                                    print("Vial Present Starting Experiment")
+                                    # open gripper
+                                    client.SendCommand("graspplate 117 60 10")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand("moveoneaxis 1 1002.71 1")
+                                    reply = client.SendCommand("waitforeom")
+
+                                else:
+                                    print("Vial Not Present Stopping Execution")
+                                    # open gripper
+                                    client.SendCommand("graspplate 117 60 10")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand("moveoneaxis 1 1002.71 1")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    # safe postion
+                                    client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                                    reply = client.SendCommand("waitforeom")
+
+                                    client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
+                                    reply = client.SendCommand("waitforeom")
+                                    return
+                            else:
+                                print("Robot Didn't Reach Vial Point. Stoping Execution")
+                                client.SendCommand("moveoneaxis 1 1002.71 1")
+                                reply = client.SendCommand("waitforeom")
+
+                                # safe postion
+                                client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                                reply = client.SendCommand("waitforeom")
+
+                                client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
+                                reply = client.SendCommand("waitforeom")
+                                return
+                        else:
+                            print("Gripper Didn't Open. Stopping Execution")
+
+                            client.SendCommand("moveoneaxis 1 1002.71 1")
+                            reply = client.SendCommand("waitforeom")
+
+                            # safe postion
+                            client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                            reply = client.SendCommand("waitforeom")
+
+                            client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
+                            reply = client.SendCommand("waitforeom")
+                            return
 
                         # safe postion
                         client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")

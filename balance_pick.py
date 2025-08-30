@@ -36,10 +36,10 @@ def balance_pick(client):
 
                 if command == "0 -1":
 
-                    client.SendCommand("movej 1 1046.97 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 2 1046.97 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand("movej 1 1046.97 -2.902 180.537 178.063 109.165 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 2 1046.97 -2.902 180.537 178.063 109.165 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
                     
                 else:
