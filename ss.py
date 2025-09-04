@@ -7,7 +7,11 @@
 # S71200_PLC.write_memory_bit(100, 0, False)
 # time.sleep(1)
 
-import requests
+# import requests
 
-payload = {"qrdata": ""}
-resp = requests.post("http://127.0.0.1:1880/qr-update", json=payload, timeout=1)
+# payload = {"qrdata": ""}
+# resp = requests.post("http://127.0.0.1:1880/qr-update", json=payload, timeout=1)
+
+from log import write_log
+
+l = write_log("AS_Test")

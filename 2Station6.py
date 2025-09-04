@@ -81,6 +81,13 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand(f"movej 2 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
+                    # Check vial in grippers
+                    command = client.SendCommand("graspplate -117 60 10")
+                    if command != "0 -1":
+
+                        print("Stopping Execution! Vial is not in gripper")
+                        return
+                    
                     # convert rid to letter
                     RID_TO_LETTER = "ABCDEFGH"
                     letter = RID_TO_LETTER[rid]
