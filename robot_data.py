@@ -33,6 +33,7 @@ def pf3400_rail(client, position_name: str):
         "Speed": robot_speed,
         "Trajectory Time": robot_time
     }
+    return robot_data
 
 def pf3400_robot(client, position_name: str):
 
