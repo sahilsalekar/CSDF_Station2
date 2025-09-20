@@ -29,6 +29,7 @@ def pf3400_rail(client, position_name: str):
         "Timestamp": dt,
         "Position Name": position_name,
         "Robot Position": robot_pos,
+        "Robot Position Type": "Joint Position",
         "Controller Temperature": robot_temp,
         "Speed": robot_speed,
         "Trajectory Time": robot_time
@@ -59,6 +60,7 @@ def pf3400_robot(client, position_name: str):
         "Timestamp": dt,
         "Position Name": position_name,
         "Robot Position": robot_pos,
+        "Robot Position Type": "Cartesian Position",
         "Controller Temperature": robot_temp,
         "Speed": robot_speed,
         "Trajectory Time": robot_time

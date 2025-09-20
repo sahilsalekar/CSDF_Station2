@@ -94,14 +94,14 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand(f"movej 1 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    # Balance Check
-                    balance_check.balance_check(client)
+                    # # Balance Check
+                    # balance_check.balance_check(client)
 
-                    time.sleep(0.5)
+                    # time.sleep(0.5)
 
-                    # QR Check
-                    print("Executing qr_check")
-                    qr_check.qr_check(client)
+                    # # QR Check
+                    # print("Executing qr_check")
+                    # qr_check.qr_check(client)
 
                     time.sleep(0.5)
 

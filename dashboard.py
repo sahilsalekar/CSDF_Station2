@@ -24,7 +24,17 @@ class Dashboard:
         except requests.RequestException as e:
             print(f"[ERROR] Failed to get new experiment: {e}")
             return None
-
+        
+    def check_for_ready_experiments(self):
+        try:
+            response = requests.get(f'{self.base_url}/get_ready_experiment')
+            response.raise_for_status()
+            data = response.json()
+            return data
+        except requests.RequestException as e:
+            print(f"[ERROR] Failed to get new experiment: {e}")
+            return None
+        
     def get_experiment_id(self, vial_id):
         try:
             response = requests.get(f'{self.base_url}/get_exp_for_vial?vial_id={vial_id}')
