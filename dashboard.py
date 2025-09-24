@@ -54,6 +54,16 @@ class Dashboard:
         except requests.RequestException as e:
             print(f"[ERROR] Failed to get experiment status: {e}")
             return None
+        
+    def get_crystallines_online(self):
+        try:
+            response = requests.get(f'{self.base_url}/get_crystallines_online')
+            response.raise_for_status()
+            data = response.json()
+            return data
+        except requests.RequestException as e:
+            print(f"[ERROR] Failed to get crystallines online: {e}")
+            return None
 
     def mark_reactor_free(self, cid, rid):
         try:
