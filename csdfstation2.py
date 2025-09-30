@@ -1,4 +1,5 @@
-# csdfstation2.py
+# csdfstation2.py 
+
 import os
 import json
 import time
@@ -60,7 +61,8 @@ error_flag = False
 error_message = ""
 
 # expose currently running task in /status
-current_task = None  # dict like {"type":1,"cid":5,"letter":"C","exp_id":101} or {"type":"INIT_STATION2"}
+# NOTE: now uses {"rid": "A".."H"} as the pallet code in status (key name kept as 'rid').
+current_task = None  # dict like {"type":1,"cid":5,"rid":2,"exp_id":101} or {"type":"INIT_STATION2"}
 
 # Station-2 initiation queue (async trigger from Station-1)
 station2_queue = Queue()
@@ -89,6 +91,7 @@ def load_tasks():
                 print("[WARN] tasks.json invalid; starting with empty queue.")
 
 def save_tasks():
+    # Save the current queue snapshot to disk.
     with lock:
         with open(TASK_FILE, "w") as f:
             json.dump(list(task_queue.queue), f, indent=2)
@@ -134,6 +137,12 @@ def rid_to_letter(rid_val) -> Optional[str]:
         return s
     return None
 
+def letter_to_rid(letter: str) -> Optional[int]:
+    try:
+        return RID_TO_LETTER.index(letter.upper())
+    except Exception:
+        return None
+
 def is_tray_ready() -> bool:
     try:
         res = requests.get(TRAY_API, timeout=2)
@@ -143,10 +152,12 @@ def is_tray_ready() -> bool:
         return False
 
 def requeue_task_local(task):
+    # NOTE: With persistence-on-failure approach, we generally do NOT call this.
     task_queue.put(task)
     save_tasks()
 
 def remove_task_local(task):
+    # Remove a specific task object from the queue and persist to disk.
     temp = list(task_queue.queue)
     try:
         temp.remove(task)
@@ -247,25 +258,26 @@ def keep_robot_alive_loop():
 def dispatcher_loop():
     """
     Continuously:
-      1) Execute tasks from file queue (type 1 or 2).
-      2) Handle Station-2 initiation triggers (balance + QR + enqueue experiment task with exp_id.
-         If no match or scan fails: pick & fail vial at QR).
+      1) Execute tasks from file queue (type 1 or 2) using PEEK semantics (do not remove yet).
+      2) Handle Station-2 initiation triggers.
     """
     global robot_busy
 
     while not shutdown_flag:
         try:
-            if not task_queue.empty() and not robot_busy:
-                t = task_queue.get()
-                save_tasks()
-                process_task(t)
-                continue
-
-            if not station2_queue.empty() and not robot_busy:
-                payload = station2_queue.get()
-                run_station2_initiation(payload)
-                continue
-
+            if not robot_busy:
+                # Peek the first task without removing it.
+                next_task = None
+                with lock:
+                    qlist = list(task_queue.queue)
+                    if qlist:
+                        next_task = qlist[0]
+                if next_task is not None:
+                    process_task(next_task)
+                    # do not "continue" here strictly; but loop is fine
+                elif not station2_queue.empty():
+                    payload = station2_queue.get()
+                    run_station2_initiation(payload)
             time.sleep(2)
 
         except Exception as e:
@@ -282,15 +294,14 @@ def process_task(task):
       - [task_type, cid, letter, exp_id]
     - type=1 (experiment) => tray gate
     - type=2 (cleanup)    => SEND_VIAL gate
+
+    Persistence behavior: we DO NOT remove the task from the queue/file until
+    the module run() completes successfully. On any block/failure, we simply return
+    and allow retry later. This keeps the task in tasks.json in case of crash.
     """
     global robot_busy, client, current_task
 
-    if not robot_ready or client is None:
-        print("⛔ Robot not ready; requeuing task.")
-        requeue_task_local(task)
-        time.sleep(1)
-        return
-
+    # Basic validation
     if not isinstance(task, list) or len(task) < 3:
         set_error(f"Invalid task format (skipping): {task}")
         return
@@ -298,34 +309,41 @@ def process_task(task):
     task_type = task[0]
     cid       = task[1]
     col_letter= task[2]
-    exp_id    = task[3] if len(task) >= 4 else None
+    exp_id    = task[3] if len(task) >= 4 else None    # Use letter (A..H) for rid in status
+    rid_letter = col_letter.upper()
 
+    if not robot_ready or client is None:
+        print("⛔ Robot not ready; will retry later.")
+        time.sleep(1)
+        return  # do NOT remove/requeue
+
+    # Update status with rid (not letter)
     robot_busy = True
-    current_task = {"type": task_type, "cid": cid, "letter": col_letter}
+    current_task = {"type": task_type, "cid": cid, "rid": rid_letter}
     if exp_id is not None:
         current_task["exp_id"] = exp_id
 
+    # Human-facing dashboard text still shows letter (A..H)
     task_txt = f"{task_type} {cid} {col_letter}" + (f" exp_id={exp_id}" if exp_id is not None else "")
     set_dashboard(status="busy", task_txt=task_txt)
 
     try:
+        # Gates
         if task_type == 2:
             try:
                 resp = requests.get(SEND_VIAL_API, timeout=5)
                 if not resp.ok or not resp.json().get("sendvial"):
-                    print("⛔ Cleanup blocked. Requeueing.")
-                    requeue_task_local(task)
-                    return
+                    print("⛔ Cleanup blocked. Will retry later.")
+                    return  # keep task; try again later
             except Exception as e:
                 set_error(f"Cleanup permission check failed: {e}")
-                requeue_task_local(task)
-                return
+                return  # keep task; try again later
 
         if task_type == 1 and not is_tray_ready():
-            print("🟥 Tray not ready — requeueing experiment.")
-            requeue_task_local(task)
-            return
+            print("🟥 Tray not ready — will retry later.")
+            return  # keep task; try again later
 
+        # Execute
         print(f"🚀 Running task: {task}")
         row, col = get_pallet_row_col(col_letter)
         module = importlib.import_module(f"{task_type}Station{cid}")
@@ -340,11 +358,12 @@ def process_task(task):
             module.run(client, row, col)
 
         print(f"✅ Task completed: {task}")
+        # Only now remove from queue/file
         remove_task_local(task)
 
     except Exception as e:
         set_error(f"Task execution failed: {e}")
-        requeue_task_local(task)
+        # Keep task in queue/file for retry later
     finally:
         robot_busy = False
         current_task = None
@@ -364,11 +383,11 @@ def run_station2_initiation(payload: dict):
 
     dash = Dashboard()
     robot_busy = True
-    current_task = {"type": "INIT_STATION2"}
+    current_task = {"type": "INIT_STATION2"}  # no rid during INIT phase
     set_dashboard(status="busy", task_txt="INIT_STATION2")
 
     try:
-        # Balance check (keep if needed in your workflow)
+        # Balance check (if needed in your workflow)
         balance_check.balance_check(client)
         time.sleep(0.5)
 
@@ -465,6 +484,7 @@ def run_station2_initiation(payload: dict):
 # =========================
 @app.get("/csdfstation2_status")
 def status():
+    """Status endpoint: current_task.rid is a letter (A..H)."""
     dash = Dashboard()
     cryst = dash.get_crystallines_online()
 
@@ -493,7 +513,7 @@ def status():
         "busy": robot_busy,
         "error": error_flag,
         "status_message": status_message,
-        "current_task": current_task,
+        "current_task": current_task,  # e.g., {"type":1,"cid":5,"rid":"C","exp_id":101}
     }
 
 @app.post("/initiate-station2")
@@ -515,6 +535,7 @@ def add_task(task: Task):
 
 @app.get("/next_task")
 def get_next_task():
+    # NOTE: This endpoint still DEQUEUES the task by design.
     if not task_queue.empty():
         t = task_queue.get()
         save_tasks()

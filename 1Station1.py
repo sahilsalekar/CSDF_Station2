@@ -8,6 +8,7 @@ import json
 import balance_pick
 import balance_place
 from balance_tcp import BalanceTCPClient
+import requests
 
 dash = Dashboard()
 
@@ -301,3 +302,8 @@ def run(client, pallet_row, pallet_col, exp_id):
         #Home position
         client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
         reply = client.SendCommand("waitforeom")
+        try:
+            resp = requests.post("http://localhost:8006/csdfstation2_initiated_success")
+            print(f"[INFO] Station2 success callback sent. Status={resp.status_code}")
+        except Exception as e:
+            print(f"[WARN] Could not notify CSDF_Station1 success: {e}")

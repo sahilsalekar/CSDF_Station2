@@ -1,41 +1,20 @@
 # 1Station5.py
 
 import time
-import qr_check
-import qr_place_vial
 import qr_pick_vial
-import in_vial_tray
 import failvial
-from plc_qr_seq import plc_qr_seq
 from dashboard import Dashboard
 import json
-import balance_check
 import balance_pick
 import balance_place
 from balance_tcp import BalanceTCPClient
+import requests
 
 dash = Dashboard()
 
 sta_num = 5
 axis_6 = -8.886
 
-# Helper function for qr retry
-def read_qr_with_retry(max_tries=2, delay=0.5):
-    """
-    Try reading QR up to `max_tries` times. 
-    Returns the final qr_data dict from plc_qr_seq().
-    """
-    last = None
-    for attempt in range(1, max_tries + 1):
-        qr_data = plc_qr_seq()
-        if qr_data.get("success"):
-            return qr_data
-        print(f"[WARN] QR scan failed (attempt {attempt}/{max_tries}). "
-              f"Error: {qr_data.get('error') or qr_data.get('data')}")
-        last = qr_data
-        if attempt < max_tries:
-            time.sleep(delay)
-    return last or {"success": False, "error": "Unknown QR error"}
 
 # Add task to status.json
 def append_status(exp_id, cid, rid):
@@ -59,7 +38,7 @@ def append_status(exp_id, cid, rid):
     except Exception as e:
         print(f"[ERROR] Failed to write to status.json: {e}")
 
-def run(client, pallet_row, pallet_col):
+def run(client, pallet_row, pallet_col, exp_id):
     print(f"Running 1Station5 with palletindex {sta_num} {pallet_row} {pallet_col}")
 
     try:
@@ -96,71 +75,53 @@ def run(client, pallet_row, pallet_col):
                     client.SendCommand(f"movej 1 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    # # Balance Check
-                    # balance_check.balance_check(client)
-
-                    # time.sleep(0.5)
-
-                    # # QR Check
-                    # print("Executing qr_check")
-                    # qr_check.qr_check(client)
+                    
 
                     time.sleep(0.5)
 
-                    # in vial tray
-                    print("Exeuting in_vial_tray")
-                    if not in_vial_tray.in_vial_tray(client):
-                        return
+                    
+
+                    
+
+                    
+
+                           
+
+                    # qr pick vial
+                    print("Executing qr_pick_vial")
+                    qr_pick_vial.qr_pick_vial(client)
+                    time.sleep(0.5)
+
+                            
+
+                    # balance place
+                    balance_place.balance_place(client)
 
                     time.sleep(0.5)
 
-                    # Qr place vial
-                    print("Executing qr_place_vial")
-                    qr_place_vial.qr_place_vial(client)
+                    # balance weigh
+                    balance = BalanceTCPClient()
+                    result = balance.read_weight()
+                    balance.disconnect()
 
-                    # qr plc sequence
-                    print("Executing qr plc sequence")
-                    qr_data = read_qr_with_retry(max_tries=2, delay=0.5)
+                    time.sleep(0.5)
 
-                    if qr_data.get("success"):
-                        print(f"Scan Okay: {qr_data['data']}")
-                        vial_id = qr_data['data']
-                        exp_response = dash.get_experiment_id(vial_id)
-
-                        if exp_response and exp_response.get("found"):
-                            exp_id = exp_response["exp_id"]
-                            print(f"Experiment found for vial {vial_id}: exp_id = {exp_id}")
-
-                            # qr pick vial
-                            print("Executing qr_pick_vial")
-                            qr_pick_vial.qr_pick_vial(client)
-                            time.sleep(0.5)
-
-                        else:
-                            exp_id = None
-                            print(f"No experiment found for vial {vial_id}.")
-
-                            # qr pick vial
-                            print("Executing qr_pick_vial")
-                            qr_pick_vial.qr_pick_vial(client)
-                            time.sleep(0.5)
-
-                            # fail vial
-                            print("Executing fail vial")
-                            failvial.failvial(client)
-                            return
-
-                        # balance place
-                        balance_place.balance_place(client)
+                    if result["success"]:
+                        weight_mg = result["data"]
+                        # send weight
+                        resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
 
                         time.sleep(0.5)
 
+                        # balance pick
+                        balance_pick.balance_pick(client)
+
+                    else:
+                        print("Retrying weight read...")
                         # balance weigh
                         balance = BalanceTCPClient()
                         result = balance.read_weight()
                         balance.disconnect()
-
-                        time.sleep(0.5)
 
                         if result["success"]:
                             weight_mg = result["data"]
@@ -173,102 +134,73 @@ def run(client, pallet_row, pallet_col):
                             balance_pick.balance_pick(client)
 
                         else:
-                            print("Retrying weight read...")
-                            # balance weigh
-                            balance = BalanceTCPClient()
-                            result = balance.read_weight()
-                            balance.disconnect()
+                            print("Error Reading weight")
 
-                            if result["success"]:
-                                weight_mg = result["data"]
-                                # send weight
-                                resp = dash.add_vial_mass(named_time="START", mass=weight_mg, exp_id=exp_id)
+                            # balance pick
+                            balance_pick.balance_pick(client)
 
-                                time.sleep(0.5)
+                            time.sleep(0.5)
 
-                                # balance pick
-                                balance_pick.balance_pick(client)
+                            # fail vial
+                            print("Executing fail vial")
+                            failvial.failvial(client)
+                            return
+
+                    time.sleep(0.5)
+                    
+                    client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+                    reply = client.SendCommand("waitforeom")
+
+                    # safe postion
+                    client.SendCommand(f"movej 2 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                    reply = client.SendCommand("waitforeom") 
+
+                    client.SendCommand(f"movej 2 1021.852 -1.398 124 -0.849 103.081 {axis_6}")
+                    reply = client.SendCommand("waitforeom")
+
+                    time.sleep(0.5)
+
+                    client.SendCommand(f"placeplate {sta_num}")
+                    reply = client.SendCommand("waitforeom") 
+
+                    # push move
+                    # close gripper
+                    client.SendCommand("graspplate -119 60 10")
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("moveoneaxis 1 854.994 1")
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand("moveoneaxis 1 861 1")
+                    reply = client.SendCommand("waitforeom")
+
+                    time.sleep(5)
+
+                    # Check vial present before starting exp
+                    # open gripper
+                    command = client.SendCommand("graspplate 117 60 10")
+                    #reply = client.SendCommand("waitforeom")
+                    if command == "0 0":
+                        command = client.SendCommand("moveoneaxis 1 843.365 2")
+                        reply = client.SendCommand("waitforeom")
+                        if command == "0":
+                            command = client.SendCommand("graspplate -117 60 10")
+                            #reply = client.SendCommand("waitforeom")
+                            if command == "0 -1":
+                                print("Vial Present Starting Experiment")
+                                # open gripper
+                                client.SendCommand("graspplate 117 60 10")
+                                reply = client.SendCommand("waitforeom")
+
+                                client.SendCommand("moveoneaxis 1 1002.71 1")
+                                reply = client.SendCommand("waitforeom")
 
                             else:
-                                print("Error Reading weight")
+                                print("Vial Not Present Stopping Execution")
+                                # open gripper
+                                client.SendCommand("graspplate 117 60 10")
+                                reply = client.SendCommand("waitforeom")
 
-                                # balance pick
-                                balance_pick.balance_pick(client)
-
-                                time.sleep(0.5)
-
-                                # fail vial
-                                print("Executing fail vial")
-                                failvial.failvial(client)
-                                return
-
-                        time.sleep(0.5)
-                        
-                        client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
-                        reply = client.SendCommand("waitforeom")
-
-                        # safe postion
-                        client.SendCommand(f"movej 2 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
-                        reply = client.SendCommand("waitforeom") 
-
-                        client.SendCommand(f"movej 2 1021.852 -1.398 124 -0.849 103.081 {axis_6}")
-                        reply = client.SendCommand("waitforeom")
-
-                        time.sleep(0.5)
-
-                        client.SendCommand(f"placeplate {sta_num}")
-                        reply = client.SendCommand("waitforeom") 
-
-                        # push move
-                        # close gripper
-                        client.SendCommand("graspplate -119 60 10")
-                        reply = client.SendCommand("waitforeom")
-
-                        client.SendCommand("moveoneaxis 1 854.994 1")
-                        reply = client.SendCommand("waitforeom")
-
-                        client.SendCommand("moveoneaxis 1 861 1")
-                        reply = client.SendCommand("waitforeom")
-
-                        time.sleep(5)
-
-                        # Check vial present before starting exp
-                        # open gripper
-                        command = client.SendCommand("graspplate 117 60 10")
-                        #reply = client.SendCommand("waitforeom")
-                        if command == "0 0":
-                            command = client.SendCommand("moveoneaxis 1 843.365 2")
-                            reply = client.SendCommand("waitforeom")
-                            if command == "0":
-                                command = client.SendCommand("graspplate -117 60 10")
-                                #reply = client.SendCommand("waitforeom")
-                                if command == "0 -1":
-                                    print("Vial Present Starting Experiment")
-                                    # open gripper
-                                    client.SendCommand("graspplate 117 60 10")
-                                    reply = client.SendCommand("waitforeom")
-
-                                    client.SendCommand("moveoneaxis 1 1002.71 1")
-                                    reply = client.SendCommand("waitforeom")
-
-                                else:
-                                    print("Vial Not Present Stopping Execution")
-                                    # open gripper
-                                    client.SendCommand("graspplate 117 60 10")
-                                    reply = client.SendCommand("waitforeom")
-
-                                    client.SendCommand("moveoneaxis 1 1002.71 1")
-                                    reply = client.SendCommand("waitforeom")
-
-                                    # safe postion
-                                    client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
-                                    reply = client.SendCommand("waitforeom")
-
-                                    client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
-                                    reply = client.SendCommand("waitforeom")
-                                    return
-                            else:
-                                print("Robot Didn't Reach Vial Point. Stoping Execution")
                                 client.SendCommand("moveoneaxis 1 1002.71 1")
                                 reply = client.SendCommand("waitforeom")
 
@@ -280,8 +212,7 @@ def run(client, pallet_row, pallet_col):
                                 reply = client.SendCommand("waitforeom")
                                 return
                         else:
-                            print("Gripper Didn't Open. Stopping Execution")
-
+                            print("Robot Didn't Reach Vial Point. Stoping Execution")
                             client.SendCommand("moveoneaxis 1 1002.71 1")
                             reply = client.SendCommand("waitforeom")
 
@@ -292,6 +223,11 @@ def run(client, pallet_row, pallet_col):
                             client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
                             reply = client.SendCommand("waitforeom")
                             return
+                    else:
+                        print("Gripper Didn't Open. Stopping Execution")
+
+                        client.SendCommand("moveoneaxis 1 1002.71 1")
+                        reply = client.SendCommand("waitforeom")
 
                         # safe postion
                         client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
@@ -299,41 +235,44 @@ def run(client, pallet_row, pallet_col):
 
                         client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
                         reply = client.SendCommand("waitforeom")
-
-                        #Home position
-                        client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
-                        reply = client.SendCommand("waitforeom")
-
-                        #Intiate Experiment
-                        max_retries = 3
-                        for attempt in range(1, max_retries + 1):
-                            try:
-                                dash.initiate_experiment(exp_id, cid, rid)
-                                print(f"✅ Experiment started at {cid} {rid} with experiment id {exp_id}")
-                                break  # success, exit retry loop
-                            except Exception as e:
-                                print(f"[WARN] Attempt {attempt}: Failed to initiate experiment (exp_id={exp_id}) — {e}")
-                                if attempt < max_retries:
-                                    print("⏳ Retrying in 5 seconds...")
-                                    time.sleep(5)
-                                else:
-                                    print("❌ All retries failed — stopping execution.")
-                                    return
-
-                        #append status
-                        append_status(exp_id, cid, rid)
-
-                        time.sleep(0.5)
-
-                        print(f"Crystalline {sta_num} {pallet_row} {pallet_col} Complete")
-                        time.sleep(5)
-
-                    else:
-                        print(f"Scan Failed: {qr_data.get('data')}, Error: {qr_data.get('error')}")
-                        qr_pick_vial.qr_pick_vial(client)
-                        time.sleep(0.5)
-                        failvial.failvial(client)
                         return
+
+                    # safe postion
+                    client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                    reply = client.SendCommand("waitforeom")
+
+                    client.SendCommand(f"movej 1 1021.847 -1.398 184.317 179.77 103.064 {axis_6}")
+                    reply = client.SendCommand("waitforeom")
+
+                    #Home position
+                    client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+                    reply = client.SendCommand("waitforeom")
+
+                    #Intiate Experiment
+                    max_retries = 3
+                    for attempt in range(1, max_retries + 1):
+                        try:
+                            dash.initiate_experiment(exp_id, cid, rid)
+                            print(f"✅ Experiment started at {cid} {rid} with experiment id {exp_id}")
+                            break  # success, exit retry loop
+                        except Exception as e:
+                            print(f"[WARN] Attempt {attempt}: Failed to initiate experiment (exp_id={exp_id}) — {e}")
+                            if attempt < max_retries:
+                                print("⏳ Retrying in 5 seconds...")
+                                time.sleep(5)
+                            else:
+                                print("❌ All retries failed — stopping execution.")
+                                return
+
+                    #append status
+                    append_status(exp_id, cid, rid)
+
+                    time.sleep(0.5)
+
+                    print(f"Crystalline {sta_num} {pallet_row} {pallet_col} Complete")
+                    time.sleep(5)
+
+                    
 
                 else:
                     client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.0644 {axis_6}")
@@ -363,3 +302,8 @@ def run(client, pallet_row, pallet_col):
         #Home position
         client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
         reply = client.SendCommand("waitforeom")
+        try:
+            resp = requests.post("http://localhost:8006/csdfstation2_initiated_success")
+            print(f"[INFO] Station2 success callback sent. Status={resp.status_code}")
+        except Exception as e:
+            print(f"[WARN] Could not notify CSDF_Station1 success: {e}")

@@ -119,7 +119,8 @@ def run(client, pallet_row, pallet_col):
                         exp_response = dash.get_experiment_id(vial_id)
 
                         if exp_response and exp_response.get("found"):
-                            exp_id = exp_response["exp_id"]
+                            exp = exp_response.get("exp") or {}
+                            exp_id = exp.get("exp_id")
                             print(f"Experiment found for vial {vial_id}: exp_id = {exp_id}")
 
                             # qr pick vial
