@@ -25,6 +25,7 @@ def pf3400_rail(client, position_name: str):
     robot_data = {
         "Robot Name": "PF3400 SCARA Robot",
         "Robot Serial Number": "FXB-2410-4C-01283(Rail))",
+        "Asset ID": "",
         "Robot Location": "TIC 617",
         "Timestamp": dt,
         "Position Name": position_name,
@@ -56,6 +57,7 @@ def pf3400_robot(client, position_name: str):
     robot_data = {
         "Robot Name": "PF3400 SCARA Robot",
         "Robot Serial Number": "FXB-2410-4C-01283",
+        "Asset ID": "",
         "Robot Location": "TIC 617",
         "Timestamp": dt,
         "Position Name": position_name,
