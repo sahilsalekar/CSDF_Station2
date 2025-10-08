@@ -14,7 +14,7 @@ def failvial(client):
             client.SendCommand("moveoneaxis 1 182.018 1")
             reply = client.SendCommand("waitforeom")
 
-            client.SendCommand("movec 1 982.532 -237.697 182.081 -89.215 90 180 2")
+            client.SendCommand("movec 1 964.349 -316.649 182.085 -89.027 90 180 2")
             reply = client.SendCommand("waitforeom")
         
             client.SendCommand("graspplate 117 60 10")
