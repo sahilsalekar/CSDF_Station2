@@ -1,0 +1,32 @@
+[
+    {
+        "exp_id": "cmac_1469",
+        "cid": 1,
+        "rid": 5
+    },
+    {
+        "exp_id": "cmac_1466",
+        "cid": 2,
+        "rid": 1
+    },
+    {
+        "exp_id": "cmac_1468",
+        "cid": 2,
+        "rid": 4
+    },
+    {
+        "exp_id": "cmac_1482",
+        "cid": 2,
+        "rid": 2
+    },
+    {
+        "exp_id": "cmac_1474",
+        "cid": 3,
+        "rid": 3
+    },
+    {
+        "exp_id": "cmac_1472",
+        "cid": 3,
+        "rid": 2
+    }
+]
