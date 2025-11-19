@@ -3,7 +3,7 @@ import time
 import requests
 
 class BalanceTCPClient:
-    def __init__(self, ip='192.168.1.7', port=23, timeout=None):
+    def __init__(self, ip='192.168.1.7', port=23, timeout=60):
         self.ip = ip
         self.port = port
         self.timeout = timeout
