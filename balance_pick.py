@@ -1,6 +1,7 @@
 import time
 import S71200_PLC
 from balance_tcp import BalanceTCPClient
+import robot_data
 
 def balance_pick(client):
     """
@@ -28,6 +29,9 @@ def balance_pick(client):
             reply = client.SendCommand("waitforeom")
             if reply == "0":
                 print("Robot moved to Balance.")
+                # Robot Data
+                insert = robot_data.pf3400_rail(client, position_name="Balance")
+                time.sleep(0.5)
                 client.SendCommand("movej 1 1046.97 -16.638 113.639 -7.258 109.165 343.377") # Balance approach
                 reply = client.SendCommand("waitforeom")
 
@@ -35,7 +39,9 @@ def balance_pick(client):
                 reply = client.SendCommand("waitforeom")
 
                 if command == "0 -1":
-
+                    # Robot Data
+                    insert = robot_data.pf3400_robot(client, position_name="Balance_Pick")
+                    time.sleep(0.5)
                     client.SendCommand("movej 2 1046.97 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
