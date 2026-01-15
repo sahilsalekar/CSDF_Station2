@@ -1,16 +1,16 @@
 #2Station6.py
 
 import time
-import qr_check
-import qr_place_vial
-import qr_pick_vial
+from qr import qr_check
+from qr import qr_place_vial
+from qr import qr_pick_vial
 import failvial
 from plc_qr_seq import plc_qr_seq
 from dashboard import Dashboard
-import balance_check
-import balance_pick
-import balance_place
-from balance_tcp import BalanceTCPClient
+from balance import balance_check
+from balance import balance_pick
+from balance import balance_place
+from balance.balance_tcp import BalanceTCPClient
 import Vial_to_ventionplace
 import requests
 

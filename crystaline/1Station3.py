@@ -1,13 +1,13 @@
 # 1Station3.py
 
 import time
-import qr_pick_vial
+from qr import qr_pick_vial
 import failvial
 from dashboard import Dashboard
 import json
-import balance_pick
-import balance_place
-from balance_tcp import BalanceTCPClient
+from balance import balance_pick
+from balance import balance_place
+from balance.balance_tcp import BalanceTCPClient
 import requests
 
 dash = Dashboard()

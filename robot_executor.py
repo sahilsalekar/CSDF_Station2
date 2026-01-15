@@ -81,7 +81,7 @@ def process_task(task, client):
 
         print(f"🚀 Running robot task: {task}")
         row, col = get_pallet_row_col(col_letter)
-        module = importlib.import_module(f"{task_type}Station{cid}")
+        module = importlib.import_module(f"crystaline.{task_type}Station{cid}")
         module.run(client, row, col)
         
         # ✅ Only remove task after full success
