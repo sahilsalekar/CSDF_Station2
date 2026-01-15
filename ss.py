@@ -12,6 +12,13 @@
 # payload = {"qrdata": ""}
 # resp = requests.post("http://127.0.0.1:1880/qr-update", json=payload, timeout=1)
 
-from log import write_log
+# from log import write_log
 
-l = write_log("AS_Test")
+# l = write_log("AS_Test")
+
+import csdf_kafka
+import time
+
+csdf_kafka.experiment_started(1, 1, "A")
+time.sleep(10)
+csdf_kafka.experiment_finished(1, 1, "A")
