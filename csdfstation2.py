@@ -17,11 +17,11 @@ import robot_setup
 from dashboard import Dashboard
 
 # Station helper pipelines (adjust names if yours differ)
-import balance_check
-import qr_check
+from balance import balance_check
+from qr import qr_check
 import in_vial_tray
-import qr_place_vial
-import qr_pick_vial
+from qr import qr_place_vial
+from qr import qr_pick_vial
 import failvial
 
 # PLC QR reader used by retry helper
