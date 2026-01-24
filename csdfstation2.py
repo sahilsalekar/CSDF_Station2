@@ -1,15 +1,14 @@
-# csdfstation2.py
+# CSDFStation2.py
 import os
 import json
 import time
 import threading
 import importlib
-from queue import Queue
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn
 
 # ---- your libs ----
@@ -27,13 +26,14 @@ import failvial
 # PLC QR reader used by retry helper
 from plc_qr_seq import plc_qr_seq
 
+
 # =========================
 # Constants / Endpoints
 # =========================
-TASK_FILE = "tasks.json"
-INITIATE_FILE = "initiate_task.json"  # persistent queue for Station-1 initiation triggers
+TASK_FILE = "tasks.json"                 # SINGLE source of truth for tasks
+INITIATE_FILE = "initiate_task.json"     # persistent queue for Station-1 initiation triggers
 
-TRAY_API       = "http://localhost:8002/is_tray_ready"   # tray gate for experiments
+TRAY_API       = "http://localhost:8002/is_tray_ready"   # tray gate for experiments (optional)
 SEND_VIAL_API  = "http://localhost:8005/send_vial"       # cleanup permission (type 2)
 
 # Node-RED UI endpoints
@@ -44,12 +44,12 @@ NODERED_QR     = "http://127.0.0.1:1880/qr-update"
 
 RID_TO_LETTER = "ABCDEFGH"
 
+
 # =========================
 # App / Globals
 # =========================
 app = FastAPI()
 
-task_queue = Queue()
 # IMPORTANT: use RLock to avoid deadlocks when nested functions acquire the same lock
 lock = threading.RLock()
 
@@ -65,100 +65,54 @@ error_message = ""
 # use key "rid" with LETTER value A..H
 current_task = None  # dict like {"type":1,"cid":5,"rid":"C","exp_id":101} or {"type":"INIT_STATION2"}
 
-# legacy in-memory (kept for compatibility; logic uses INITIATE_FILE)
-station2_queue = Queue()
 
 # =========================
 # Models
 # =========================
-class Task(BaseModel):
-    # Allow 3 or 4 elements: [type, cid, letter] or [type, cid, letter, exp_id]
-    task: List
+class TaskPayload(BaseModel):
+    """
+    Supports:
+      - dict task format (recommended):
+          {"type":1,"cid":2,"rid":"A","exp_id":123}
+          {"type":2,"cid":5,"rid":"G"}
+      - legacy list format (accepted for backward compatibility):
+          [1, 2, "A", 123]
+          [2, 5, "G"]
+    """
+    task: Union[Dict[str, Any], List[Any]]
+
 
 class InitiatePayload(BaseModel):
     note: Optional[str] = None  # optional metadata
 
-# =========================
-# Persistence: tasks.json
-# =========================
-def load_tasks():
-    if os.path.exists(TASK_FILE):
-        with open(TASK_FILE, "r") as f:
-            try:
-                tasks = json.load(f)
-                for t in tasks:
-                    task_queue.put(t)
-            except json.JSONDecodeError:
-                print("[WARN] tasks.json invalid; starting with empty queue.")
-
-def save_tasks():
-    with lock:
-        with open(TASK_FILE, "w") as f:
-            json.dump(list(task_queue.queue), f, indent=2)
 
 # =========================
-# Persistence: initiate_task.json
+# Persistence: tasks.json (SINGLE source of truth)
 # =========================
-def _read_initiate_list() -> List[dict]:
-    with lock:
-        if not os.path.exists(INITIATE_FILE):
-            with open(INITIATE_FILE, "w") as f:
-                json.dump([], f)
-            return []
-        try:
-            with open(INITIATE_FILE, "r") as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    return data
-                return []
-        except Exception:
-            print("[WARN] initiate_task.json unreadable; resetting to empty list.")
-            with open(INITIATE_FILE, "w") as f:
-                json.dump([], f)
-            return []
+def _ensure_file(path: str, default_json: Any) -> None:
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump(default_json, f, indent=2)
 
-def _write_initiate_list(items: List[dict]) -> None:
-    with lock:
-        with open(INITIATE_FILE, "w") as f:
-            json.dump(items, f, indent=2)
 
-def enqueue_initiate(payload: dict) -> None:
-    items = _read_initiate_list()
-    items.append(payload or {})
-    _write_initiate_list(items)
+def _atomic_write_json(path: str, data: Any) -> None:
+    tmp = f"{path}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, path)  # atomic replace
 
-def pop_next_initiate() -> Optional[dict]:
-    items = _read_initiate_list()
-    if not items:
-        return None
-    nxt = items.pop(0)
-    _write_initiate_list(items)
-    return nxt
 
-def has_initiate() -> bool:
-    items = _read_initiate_list()
-    return len(items) > 0
+def _read_json_list(path: str) -> List[Any]:
+    _ensure_file(path, [])
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        # reset corrupted file safely
+        _atomic_write_json(path, [])
+        return []
 
-# =========================
-# Helpers
-# =========================
-def set_error(msg: str):
-    global error_flag, error_message
-    error_flag = True
-    error_message = msg
-    print(f"[ERROR] {msg}", flush=True)
-
-def clear_error():
-    global error_flag, error_message
-    error_flag = False
-    error_message = ""
-
-def get_pallet_row_col(letter: str):
-    mapping = {
-        'A': (1, 1), 'B': (1, 2), 'C': (1, 3), 'D': (1, 4),
-        'E': (2, 1), 'F': (2, 2), 'G': (2, 3), 'H': (2, 4),
-    }
-    return mapping[letter.upper()]
 
 def rid_to_letter(rid_val) -> Optional[str]:
     if rid_val is None:
@@ -189,6 +143,269 @@ def rid_to_letter(rid_val) -> Optional[str]:
 
     return None
 
+
+def normalize_task(item: Union[Dict[str, Any], List[Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Normalizes task into keyword dict format:
+      {"type": int, "cid": int, "rid": "A".."H", "exp_id": optional int}
+    Also supports your "status json" style:
+      {"exp_id": 1609, "cid": 2, "rid": 0}  -> becomes {"type":1,"cid":2,"rid":"A","exp_id":1609}
+    """
+    # dict input
+    if isinstance(item, dict):
+        # status-style (no "type", rid numeric)
+        if "type" not in item and "exp_id" in item and "cid" in item and "rid" in item:
+            letter = rid_to_letter(item.get("rid"))
+            if not letter:
+                return None
+            return {
+                "type": 1,
+                "cid": int(item["cid"]),
+                "rid": letter,
+                "exp_id": int(item["exp_id"]),
+            }
+
+        # recommended task style
+        if "type" in item and "cid" in item and "rid" in item:
+            ttype = int(item["type"])
+            cid = int(item["cid"])
+            letter = rid_to_letter(item.get("rid"))
+            if not letter:
+                return None
+
+            out = {"type": ttype, "cid": cid, "rid": letter}
+            if "exp_id" in item and item["exp_id"] is not None:
+                out["exp_id"] = item["exp_id"]   # keep as-is (string or int)
+            return out
+
+        return None
+
+    # legacy list input
+    if isinstance(item, list) and len(item) >= 3:
+        try:
+            ttype = int(item[0])
+            cid = int(item[1])
+            letter = rid_to_letter(item[2])
+            if not letter:
+                return None
+
+            out = {"type": ttype, "cid": cid, "rid": letter}
+            if len(item) >= 4 and item[3] is not None:
+                out["exp_id"] = item[3]  # keep as-is
+            return out
+        except Exception:
+            return None
+
+    return None
+
+
+def read_tasks() -> List[Dict[str, Any]]:
+    """
+    Reads tasks.json and normalizes everything to dict-based tasks.
+    If the file contains status-style objects (exp_id,cid,rid int), they become type-1 tasks.
+    If legacy list tasks exist, they become dict tasks.
+    """
+    with lock:
+        raw = _read_json_list(TASK_FILE)
+        normalized: List[Dict[str, Any]] = []
+        changed = False
+
+        for item in raw:
+            nt = normalize_task(item)
+            if nt is None:
+                # skip invalid entries (but mark changed so we rewrite cleanly)
+                changed = True
+                continue
+            normalized.append(nt)
+            if nt != item:
+                changed = True
+
+        # If we normalized/cleaned anything, rewrite in canonical format
+        if changed:
+            _atomic_write_json(TASK_FILE, normalized)
+
+        return normalized
+
+
+def write_tasks(tasks: List[Dict[str, Any]]) -> None:
+    with lock:
+        _atomic_write_json(TASK_FILE, tasks)
+
+
+def task_equals(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    # strict equality on keys used by the system
+    keys = set(a.keys()) | set(b.keys())
+    for k in keys:
+        if a.get(k) != b.get(k):
+            return False
+    return True
+
+
+def task_exists(tasks: List[Dict[str, Any]], t: Dict[str, Any]) -> bool:
+    return any(task_equals(x, t) for x in tasks)
+
+
+def enqueue_task(t: Dict[str, Any]) -> None:
+    tasks = read_tasks()
+    if task_exists(tasks, t):
+        return
+    tasks.append(t)
+    write_tasks(tasks)
+
+
+def enqueue_priority_task(t: Dict[str, Any]) -> None:
+    """
+    Put task at the FRONT of tasks.json, removing any duplicate.
+    """
+    tasks = read_tasks()
+    tasks = [x for x in tasks if not task_equals(x, t)]
+    tasks.insert(0, t)
+    write_tasks(tasks)
+    print(f"[DEBUG] enqueue_priority_task -> queued at front: {t}", flush=True)
+
+
+def remove_task_from_file(t: Dict[str, Any]) -> None:
+    tasks = read_tasks()
+    new_tasks: List[Dict[str, Any]] = []
+    removed = False
+    for x in tasks:
+        if not removed and task_equals(x, t):
+            removed = True
+            continue
+        new_tasks.append(x)
+    if removed:
+        write_tasks(new_tasks)
+
+
+def queue_has_type2(tasks: List[Dict[str, Any]]) -> bool:
+    return any(x.get("type") == 2 for x in tasks)
+
+
+def queue_has_type1(tasks: List[Dict[str, Any]]) -> bool:
+    return any(x.get("type") == 1 for x in tasks)
+
+
+def queue_has_priority_task(tasks: List[Dict[str, Any]]) -> bool:
+    # priority: experiment tasks created by initiation (has exp_id)
+    return any(x.get("type") == 1 and "exp_id" in x for x in tasks)
+
+
+def select_next_task(tasks: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Priority rule:
+      - First experiment task with exp_id (type=1 AND has exp_id)
+      - Else first in file order
+    """
+    for x in tasks:
+        if x.get("type") == 1 and "exp_id" in x:
+            return x
+    return tasks[0] if tasks else None
+
+
+def bring_any_type1_to_front() -> Optional[Dict[str, Any]]:
+    """
+    When cleanup is blocked (sendvial false), search tasks.json for ANY type-1.
+    If found, move it to the front and persist.
+    Returns the moved task or None.
+    """
+    tasks = read_tasks()
+    if not tasks:
+        return None
+
+    idx = None
+    # prefer priority experiment (has exp_id) first
+    for i, t in enumerate(tasks):
+        if t.get("type") == 1 and "exp_id" in t:
+            idx = i
+            break
+    # else any type 1
+    if idx is None:
+        for i, t in enumerate(tasks):
+            if t.get("type") == 1:
+                idx = i
+                break
+
+    if idx is None:
+        return None
+
+    t = tasks.pop(idx)
+    tasks.insert(0, t)
+    write_tasks(tasks)
+    print(f"[INFO] Cleanup blocked -> moved type-1 to front: {t}", flush=True)
+    return t
+
+
+# =========================
+# Persistence: initiate_task.json (unchanged, file-backed)
+# =========================
+def _read_initiate_list() -> List[dict]:
+    with lock:
+        if not os.path.exists(INITIATE_FILE):
+            with open(INITIATE_FILE, "w") as f:
+                json.dump([], f)
+            return []
+        try:
+            with open(INITIATE_FILE, "r") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+                return []
+        except Exception:
+            print("[WARN] initiate_task.json unreadable; resetting to empty list.")
+            with open(INITIATE_FILE, "w") as f:
+                json.dump([], f)
+            return []
+
+
+def _write_initiate_list(items: List[dict]) -> None:
+    with lock:
+        _atomic_write_json(INITIATE_FILE, items)
+
+
+def enqueue_initiate(payload: dict) -> None:
+    items = _read_initiate_list()
+    items.append(payload or {})
+    _write_initiate_list(items)
+
+
+def pop_next_initiate() -> Optional[dict]:
+    items = _read_initiate_list()
+    if not items:
+        return None
+    nxt = items.pop(0)
+    _write_initiate_list(items)
+    return nxt
+
+
+def has_initiate() -> bool:
+    items = _read_initiate_list()
+    return len(items) > 0
+
+
+# =========================
+# Helpers
+# =========================
+def set_error(msg: str):
+    global error_flag, error_message
+    error_flag = True
+    error_message = msg
+    print(f"[ERROR] {msg}", flush=True)
+
+
+def clear_error():
+    global error_flag, error_message
+    error_flag = False
+    error_message = ""
+
+
+def get_pallet_row_col(letter: str):
+    mapping = {
+        'A': (1, 1), 'B': (1, 2), 'C': (1, 3), 'D': (1, 4),
+        'E': (2, 1), 'F': (2, 2), 'G': (2, 3), 'H': (2, 4),
+    }
+    return mapping[letter.upper()]
+
+
 def is_tray_ready() -> bool:
     try:
         res = requests.get(TRAY_API, timeout=2)
@@ -197,25 +414,6 @@ def is_tray_ready() -> bool:
         print(f"[WARN] Tray check failed: {e}", flush=True)
         return False
 
-def requeue_task_local(task):
-    task_queue.put(task)
-    save_tasks()
-
-def remove_task_local(task):
-    # Not used in the current flow, but make it safe with RLock
-    temp = list(task_queue.queue)
-    try:
-        temp.remove(task)
-        with lock:
-            task_queue.queue.clear()
-            for t in temp:
-                task_queue.put(t)
-        save_tasks()
-    except ValueError:
-        pass
-
-def _task_exists(task_list, t):
-    return any(t == x for x in task_list)
 
 def set_dashboard(status: Optional[str] = None, task_txt: Optional[str] = None,
                   weight: Optional[float] = None, qr: Optional[str] = None):
@@ -230,65 +428,6 @@ def set_dashboard(status: Optional[str] = None, task_txt: Optional[str] = None,
             requests.post(NODERED_QR, json={"qrdata": qr}, timeout=1)
     except Exception:
         pass
-
-# Queue helpers: priority handling for initiation-created experiment tasks
-def enqueue_priority_task(task):
-    """
-    Put `task` at the FRONT of the queue (priority), removing any duplicate.
-    Persist the new order to tasks.json.
-    """
-    with lock:
-        q = list(task_queue.queue)
-        try:
-            q.remove(task)  # avoid duplicates
-        except ValueError:
-            pass
-        q.insert(0, task)  # put at front
-        task_queue.queue.clear()
-        for t in q:
-            task_queue.put(t)
-    # save OUTSIDE the lock to avoid nested-lock deadlocks
-    save_tasks()
-    print(f"[DEBUG] enqueue_priority_task -> queued at front: {task}", flush=True)
-
-def pop_next_task_priority():
-    """
-    Pop a priority task first if present.
-    Priority rule: type==1 AND exp_id present (len>=4) — i.e., tasks created by initiation.
-    Otherwise, pop the head of the queue.
-    IMPORTANT: does NOT call save_tasks(); we keep the task in tasks.json until success.
-    """
-    with lock:
-        q = list(task_queue.queue)
-        if not q:
-            return None
-
-        pri_idx = None
-        for i, t in enumerate(q):
-            if isinstance(t, list) and len(t) >= 4 and t[0] == 1:
-                pri_idx = i
-                break
-
-        if pri_idx is None:
-            task = q.pop(0)
-        else:
-            task = q.pop(pri_idx)
-
-        task_queue.queue.clear()
-        for x in q:
-            task_queue.put(x)
-        # Do NOT save here — keep task in file until success
-        print(f"[DEBUG] pop_next_task_priority -> popped: {task}", flush=True)
-        return task
-
-# Helper: check if any type-2 task exists in the queue (anywhere)
-def queue_has_type2() -> bool:
-    with lock:
-        return any(isinstance(t, list) and len(t) >= 1 and t[0] == 2 for t in list(task_queue.queue))
-    
-def queue_has_priority_task() -> bool:
-    with lock:
-        return any(isinstance(t, list) and len(t) >= 4 and t[0] == 1 for t in list(task_queue.queue))
 
 
 # =========================
@@ -312,6 +451,7 @@ def read_qr_with_retry(max_tries=2, delay=0.5):
             time.sleep(delay)
     return last or {"success": False, "error": "Unknown QR error"}
 
+
 # =========================
 # Startup
 # =========================
@@ -325,7 +465,12 @@ def startup_event():
     current_task = {"type": "STARTUP"}
     set_dashboard(status="busy", task_txt="", weight=0.0, qr="")
 
-    load_tasks()
+    # Ensure files exist (no in-memory queue load)
+    _ensure_file(TASK_FILE, [])
+    _ensure_file(INITIATE_FILE, [])
+
+    # Normalize tasks.json immediately (supports your status-json format too)
+    _ = read_tasks()
 
     print("⚙️  Initializing robot...", flush=True)
     try:
@@ -347,6 +492,7 @@ def startup_event():
     threading.Thread(target=keep_robot_alive_loop, daemon=True).start()
     threading.Thread(target=dispatcher_loop, daemon=True).start()
 
+
 # =========================
 # Background loops
 # =========================
@@ -364,31 +510,79 @@ def keep_robot_alive_loop():
                 print(f"[WARN] Keep-alive failed while busy: {e}", flush=True)
         time.sleep(600)  # every 10 minutes
 
+
 def dispatcher_loop():
     """
-    Policy:
-      - If there is an initiation task and NO type-2 task anywhere in the queue, run initiation first.
-      - Otherwise, execute tasks from file queue (type 1 or 2), prioritizing initiation-created experiment tasks.
-      - When a type-2 is blocked, initiation is triggered inside process_task and the gate is re-checked.
+    Policy (file-only tasks.json):
+      - ALWAYS prefer finishing tasks already in tasks.json first.
+      - Initiation is only run when:
+          (a) tasks.json has no tasks, OR
+          (b) cleanup is blocked and we try initiation as a way to produce a priority experiment.
+      - Task selection is priority-aware:
+          type==1 AND has exp_id -> first
+          else first task in file
+
+    Extra condition:
+      - If we select a type-2 (cleanup) and sendvial is false:
+          bring any type-1 in tasks.json to the front (priority) and run that first.
+          Then continue normally.
     """
-    global robot_busy
+    global robot_busy, shutdown_flag
 
     while not shutdown_flag:
         try:
-            if not robot_busy:
-                # Priority: initiation when no type-2 tasks exist
-                if has_initiate() and not queue_has_type2():
-                    payload = pop_next_initiate()
-                    if payload:
-                        run_station2_initiation(payload)
-                        time.sleep(0.5)
-                        continue
+            if robot_busy:
+                time.sleep(0.5)
+                continue
 
-                # Pop next task (priority-aware: initiation-created experiments first)
-                t = pop_next_task_priority()
+            tasks = read_tasks()
+
+            # 1) If there are tasks in file -> process them first
+            if tasks:
+                t = select_next_task(tasks)
                 if t is not None:
+                    # if cleanup is blocked, bring type-1 to front and try again
+                    if t.get("type") == 2:
+                        allow_cleanup = False
+                        try:
+                            resp = requests.get(SEND_VIAL_API, timeout=5)
+                            allow_cleanup = resp.ok and resp.json().get("sendvial", False)
+                        except Exception as e:
+                            print(f"[WARN] Cleanup permission check failed: {e}", flush=True)
+                            allow_cleanup = False
+
+                        if not allow_cleanup:
+                            # NEW RULE: if sendvial false, move any type-1 to front (if exists)
+                            moved = bring_any_type1_to_front()
+                            if moved is not None:
+                                # Let loop re-read and execute type-1 next
+                                time.sleep(0.2)
+                                continue
+
+                            # No type-1 found -> try initiation if any
+                            if has_initiate():
+                                payload = pop_next_initiate()
+                                if payload:
+                                    print("[INFO] Running Station-2 initiation due to blocked cleanup (no type-1 in tasks).", flush=True)
+                                    run_station2_initiation(payload)
+                                    time.sleep(0.2)
+                                    continue
+
+                            # Still blocked and nothing else to do
+                            time.sleep(1.0)
+                            continue
+
+                    # Execute the selected task (remove from file only after outcome)
                     process_task(t)
                     time.sleep(0.2)
+                    continue
+
+            # 2) No tasks.json tasks -> initiation allowed (same idea as before)
+            if has_initiate():
+                payload = pop_next_initiate()
+                if payload:
+                    run_station2_initiation(payload)
+                    time.sleep(0.5)
                     continue
 
             time.sleep(1.0)
@@ -397,39 +591,40 @@ def dispatcher_loop():
             set_error(f"dispatcher_loop: {e}")
             time.sleep(2)
 
+
 # =========================
-# Task processing (executor semantics + exp_id support)
+# Task processing (file-based tasks.json)
 # =========================
-def process_task(task):
+def process_task(task: Dict[str, Any]):
     """
-    task shapes:
-      - [task_type, cid, letter]
-      - [task_type, cid, letter, exp_id]
-    - type=1 (experiment) => tray gate (optional)
-    - type=2 (cleanup)    => SEND_VIAL gate
-    Failure handling:
-      - On failure (exception): DO NOT requeue; persist removal via save_tasks().
-      - On cleanup blocked: requeue and save (retry later).
+    task dict shapes:
+      - {"type": 1, "cid": int, "rid": "A".."H"}  (exp_id optional)
+      - {"type": 2, "cid": int, "rid": "A".."H"}
+
+    File semantics:
+      - Task remains in tasks.json until:
+          - SUCCESS -> we remove it from file
+          - EXECUTION EXCEPTION -> we remove it from file (matches your prior behavior: do not requeue)
+      - Cleanup blocked:
+          - we do not remove it; we just defer it (dispatcher decides what to do next)
     """
-    global robot_busy, client, current_task, error_flag, error_message
+    global robot_busy, client, current_task, error_flag, error_message, robot_ready
 
     if not robot_ready or client is None:
-        print("⛔ Robot not ready; requeuing task.", flush=True)
-        requeue_task_local(task)
+        print("⛔ Robot not ready; will retry later (task stays in file).", flush=True)
         time.sleep(1)
         return
 
-    if not isinstance(task, list) or len(task) < 3:
-        set_error(f"Invalid task format (skipping): {task}")
+    nt = normalize_task(task)
+    if nt is None:
+        set_error(f"Invalid task format (removing from file): {task}")
+        remove_task_from_file(task)
         return
 
-    task_type = task[0]
-    cid       = task[1]
-    col_letter= task[2]
-    exp_id    = task[3] if len(task) >= 4 else None
-
-    allow_cleanup = None  # sentinel; only meaningful for task_type == 2
-
+    task_type = nt["type"]
+    cid = nt["cid"]
+    col_letter = nt["rid"]
+    exp_id = nt.get("exp_id")
 
     # ---- reset error state BEFORE starting the task ----
     error_flag = False
@@ -437,7 +632,6 @@ def process_task(task):
     # ----------------------------------------------------
 
     robot_busy = True
-    # Status key must be 'rid' but value is the LETTER (A..H)
     current_task = {"type": task_type, "cid": cid, "rid": col_letter}
     if exp_id is not None:
         current_task["exp_id"] = exp_id
@@ -446,57 +640,27 @@ def process_task(task):
     set_dashboard(status="busy", task_txt=task_txt)
 
     try:
+        # Cleanup gate check is handled in dispatcher (so we don't duplicate too much),
+        # but keep a last-guard here as well.
         if task_type == 2:
-            # Check cleanup gate (treat network issues as warnings to keep error clear during run)
+            allow_cleanup = False
             try:
                 resp = requests.get(SEND_VIAL_API, timeout=5)
-                allow_cleanup = resp.ok and resp.json().get("sendvial")
+                allow_cleanup = resp.ok and resp.json().get("sendvial", False)
             except Exception as e:
                 print(f"[WARN] Cleanup permission check failed: {e}", flush=True)
                 allow_cleanup = False
 
-        if not allow_cleanup:
-            print("⛔ Cleanup blocked.", flush=True)
-            # If there's an initiation, run one now
-            payload = pop_next_initiate()
-            if payload:
-                print("[INFO] Running Station-2 initiation due to blocked cleanup.", flush=True)
-                saved_task = current_task
-                saved_busy = robot_busy
-                try:
-                    run_station2_initiation(payload)
-                finally:
-                    robot_busy = saved_busy
-                    current_task = saved_task
-
-                # >>> PREEMPT: if initiation enqueued a priority task, yield and let it run first
-                if queue_has_priority_task():
-                    print("[INFO] Priority experiment enqueued; deferring current type-2.", flush=True)
-                    requeue_task_local(task)   # move current cleanup to the end
-                    return
-
-            # No (or failed) initiation → re-check the cleanup gate
-            try:
-                resp2 = requests.get(SEND_VIAL_API, timeout=5)
-                allow_cleanup = resp2.ok and resp2.json().get("sendvial")
-            except Exception as e:
-                print(f"[WARN] Cleanup permission re-check failed: {e}", flush=True)
-                allow_cleanup = False
-
             if not allow_cleanup:
-                # Still blocked -> requeue and exit (task stays in tasks.json)
-                requeue_task_local(task)
+                print("⛔ Cleanup blocked (process_task guard). Task stays in file.", flush=True)
                 return
-        # else: fall through to execute this type-2 now
 
-
-        # Optional experiment tray gate:
+        # Optional experiment tray gate (keep commented if you want)
         # if task_type == 1 and not is_tray_ready():
-        #     print("🟥 Tray not ready — requeueing experiment.", flush=True)
-        #     requeue_task_local(task)
+        #     print("🟥 Tray not ready — experiment stays in file.", flush=True)
         #     return
 
-        print(f"🚀 Running task: {task}", flush=True)
+        print(f"🚀 Running task: {nt}", flush=True)
         row, col = get_pallet_row_col(col_letter)
         module = importlib.import_module(f"{task_type}Station{cid}")
 
@@ -509,32 +673,34 @@ def process_task(task):
         else:
             module.run(client, row, col)
 
-        print(f"✅ Task completed: {task}", flush=True)
-        # Persist the fact that we consumed the task ONLY AFTER success
-        save_tasks()
+        print(f"✅ Task completed: {nt}", flush=True)
+        # Remove from file ONLY AFTER success
+        remove_task_from_file(nt)
 
     except Exception as e:
-        # On failure, DO NOT requeue; remove it by saving current queue state
+        # On failure, DO NOT requeue (matches your current behavior)
         set_error(f"Task execution failed: {e}")
-        save_tasks()
+        remove_task_from_file(nt)
+
     finally:
         robot_busy = False
         current_task = None
         set_dashboard(status="idle", task_txt="", weight=0.0, qr="")
 
+
 # =========================
 # Station-2 initiation:
-# Balance + QR + Place-at-QR + Scan → If found: enqueue [1, cid, letter, exp_id] (PRIORITY)
+# Balance + QR + Place-at-QR + Scan → If found: enqueue {"type":1,"cid":..,"rid":..,"exp_id":..} (PRIORITY)
 # If not found / scan fail: qr_pick_vial + failvial, then exit.
 # =========================
 def run_station2_initiation(payload: dict):
-    global robot_busy, client, current_task, error_flag, error_message
+    global robot_busy, client, current_task, error_flag, error_message, robot_ready
 
     if not robot_ready or client is None:
         print("⛔ Robot not ready; aborting Station-2 initiation.", flush=True)
         return
 
-    # Clear stale error during initiation, too
+    # Clear stale error during initiation
     error_flag = False
     error_message = None
 
@@ -569,15 +735,16 @@ def run_station2_initiation(payload: dict):
 
         if qr_data.get("success"):
             print(f"Scan Okay: {qr_data['data']}", flush=True)
-            vial_id = qr_data['data']
+            vial_id = qr_data["data"]
             set_dashboard(qr=str(vial_id))
 
             # dashboard lookup with NEW SCHEMA
             exp_response = dash.get_experiment_id(vial_id)
+            # expected:
             # {
             #   "found": bool,
             #   "ready": bool | None,
-            #   "exp": { "exp_id": int, "cid": int | None, "rid": str | None } | None,
+            #   "exp": { "exp_id": int, "cid": int | None, "rid": str|int|None } | None,
             #   "message": str
             # }
 
@@ -602,13 +769,13 @@ def run_station2_initiation(payload: dict):
                     return
 
                 # ENQUEUE experiment task with exp_id (PRIORITY at front)
-                new_task = [1, cid, letter, exp_id]
+                new_task = {"type": 1, "cid": int(cid), "rid": letter, "exp_id": int(exp_id)}
                 enqueue_priority_task(new_task)
                 print(f"🧪 Enqueued PRIORITY experiment task: {new_task}", flush=True)
 
                 # Make robot home Pos
                 client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 999.837")
-                reply = client.SendCommand("waitforeom")
+                _ = client.SendCommand("waitforeom")
 
                 # NOTE: we intentionally DO NOT pick here on success
                 # 1Station{cid} will handle presence check and pick from QR if reactor empty
@@ -635,13 +802,19 @@ def run_station2_initiation(payload: dict):
 
     except Exception as e:
         set_error(f"Station-2 initiation failed: {e}")
+
     finally:
-        #Home position
-        client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
-        reply = client.SendCommand("waitforeom")
+        # Home position
+        try:
+            client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+            _ = client.SendCommand("waitforeom")
+        except Exception as e:
+            print(f"[WARN] Failed to move home in initiation finally: {e}", flush=True)
+
         robot_busy = False
         current_task = None
         set_dashboard(status="idle", task_txt="", weight=0.0, qr="")
+
 
 # =========================
 # API endpoints
@@ -677,67 +850,81 @@ def status():
         "error": error_flag,
         "error_message": error_message if error_flag else None,
         "status_message": status_message,
-        "current_task": current_task,                   # {"type":..., "cid":..., "rid": "A".. "H", ...}
-        "initiate_queue_len": len(_read_initiate_list())  # for visibility
+        "current_task": current_task,                    # {"type":..., "cid":..., "rid": "A".. "H", ...}
+        "initiate_queue_len": len(_read_initiate_list()), # for visibility
+        "tasks_len": len(read_tasks()),
     }
+
 
 @app.post("/initiate-station2")
 def initiate_station2(payload: InitiatePayload):
-    # Persist the initiation request
     enqueue_initiate(payload.dict())
     return {"status": "Initiation queued (persistent)"}
 
-# File-backed task endpoints (both types allowed; type 1 may or may not include exp_id)
+
 @app.post("/add_task")
-def add_task(task: Task):
-    if not isinstance(task.task, list) or len(task.task) < 3:
-        return {"status": "Invalid task format. Expected [type, cid, letter, (optional exp_id)].", "task": task.task}
-    current = list(task_queue.queue)
-    if _task_exists(current, task.task):
-        return {"status": "Task already exists", "task": task.task}
-    task_queue.put(task.task)
-    save_tasks()
-    return {"status": "Task added", "task": task.task}
+def add_task(payload: TaskPayload):
+    nt = normalize_task(payload.task)
+    if nt is None:
+        return {
+            "status": "Invalid task format. Expected dict with keys type,cid,rid,(exp_id) "
+                      "or legacy list [type,cid,rid,(exp_id)]",
+            "task": payload.task
+        }
 
-@app.get("/next_task")
-def get_next_task():
-    if not task_queue.empty():
-        # This endpoint keeps legacy behavior and persists removal immediately
-        t = task_queue.get()
-        save_tasks()
-        return {"task": t}
-    return {"task": None}
+    tasks = read_tasks()
+    if task_exists(tasks, nt):
+        return {"status": "Task already exists", "task": nt}
 
-@app.get("/queue")
-def get_queue():
-    return {"queue": list(task_queue.queue)}
+    tasks.append(nt)
+    write_tasks(tasks)
+    return {"status": "Task added", "task": nt}
+
 
 @app.get("/tasks")
 def get_tasks():
-    return {"tasks": list(task_queue.queue)}
+    # Always returns canonical dict-based tasks
+    return {"tasks": read_tasks()}
 
-@app.post("/requeue_task")
-def requeue_task(task: Task):
-    task_queue.put(task.task)
-    save_tasks()
-    return {"status": "Task requeued", "task": task.task}
+
+@app.get("/queue")
+def get_queue():
+    # Alias
+    return {"queue": read_tasks()}
+
 
 @app.post("/remove_task")
-def remove_task(task: Task):
-    temp = list(task_queue.queue)
-    try:
-        temp.remove(task.task)
-        with lock:
-            task_queue.queue.clear()
-            for t in temp:
-                task_queue.put(t)
-        save_tasks()
-        return {"status": "Task removed", "task": task.task}
-    except ValueError:
-        return {"status": "Task not found in queue", "task": task.task}
+def remove_task(payload: TaskPayload):
+    nt = normalize_task(payload.task)
+    if nt is None:
+        return {"status": "Invalid task; nothing removed", "task": payload.task}
+    remove_task_from_file(nt)
+    return {"status": "Task removed (if existed)", "task": nt}
+
+
+@app.post("/requeue_task")
+def requeue_task(payload: TaskPayload):
+    nt = normalize_task(payload.task)
+    if nt is None:
+        return {"status": "Invalid task format; not requeued", "task": payload.task}
+    enqueue_task(nt)
+    return {"status": "Task requeued (appended if not duplicate)", "task": nt}
+
+
+@app.get("/next_task")
+def get_next_task():
+    """
+    Kept for legacy visibility. This endpoint DOES NOT remove tasks automatically,
+    because tasks.json is the single source of truth and dispatcher is the consumer.
+    It simply returns what WOULD be selected next by the priority rule.
+    """
+    tasks = read_tasks()
+    t = select_next_task(tasks)
+    return {"task": t}
+
 
 # =========================
 # Entrypoint
 # =========================
 if __name__ == "__main__":
-    uvicorn.run("csdfstation2:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("CSDFStation2:app", host="0.0.0.0", port=8000, reload=True)
