@@ -9,13 +9,13 @@ def in_vial_tray(client):
     
     try:
         # Robot to Tray
-        client.SendCommand("moveoneaxis 6 999.837 1")
+        client.SendCommand("moveoneaxis 6 917.268 1")
         reply = client.SendCommand("waitforeom")
         if reply == "0":
             print("Robot moved to In Tray.")
 
             # Safe Pos
-            client.SendCommand("moveoneaxis 1 933.805 1")
+            client.SendCommand("moveoneaxis 1 994.543 1")
             reply = client.SendCommand("waitforeom")
 
             #client.SendCommand("moveoneaxis 4 -361.814 1")
@@ -70,13 +70,21 @@ def in_vial_tray(client):
                     # Safe Pos
                     #client.SendCommand("moveoneaxis 4 120.095 1")
                     #reply = client.SendCommand("waitforeom")
+                    
+                    # Safepos
+                    reply = client.SendCommand("movec 1 1090.312 -11.003 994.543 -0.616 90 180 2")
+                    client.SendCommand("waitforeom")
                     return True # Vial Found
                 else:
                     print("Vial not present. Retrying...")
 
                     if tray_pos == 8:
                         #client.SendCommand("moveoneaxis 4 120.095 1")
-                        reply = client.SendCommand("waitforeom")
+                        #reply = client.SendCommand("waitforeom")
+
+                        # Safepos
+                        reply = client.SendCommand("movec 1 1090.312 -11.003 994.543 -0.616 90 180 2")
+                        client.SendCommand("waitforeom")
                         return False # No vial found
                         #raise RuntimeError("No Vial Found in - in tray!")
 
