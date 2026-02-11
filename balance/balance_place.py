@@ -1,6 +1,7 @@
+# balance_place.py
 import time
 import S71200_PLC
-from balance_tcp import BalanceTCPClient
+from .balance_tcp import BalanceTCPClient
 import robot_data
 
 def balance_place(client):

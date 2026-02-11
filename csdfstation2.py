@@ -3,7 +3,9 @@ import os
 import json
 import time
 import threading
-import importlib
+import importlib.util
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import requests
@@ -26,6 +28,30 @@ import failvial
 # PLC QR reader used by retry helper
 from plc_qr_seq import plc_qr_seq
 
+# Funtion to load crystalline task module
+def load_crystalline_module(task_type: int, cid: int):
+    filename = f"{task_type}Station{cid}.py"
+
+    base_dir = Path(__file__).resolve().parent              # folder containing csdfstation2.py
+    path = base_dir / "crystalline" / filename              # CSDF_STATION2/crystalline/...
+
+    print(f"[DEBUG] csdfstation2.py dir = {base_dir}", flush=True)
+    print(f"[DEBUG] loading task file   = {path}", flush=True)
+
+    if not path.exists():
+        # show what's actually inside crystalline to catch naming mismatch
+        cryst_dir = base_dir / "crystalline"
+        if cryst_dir.exists():
+            files = sorted(p.name for p in cryst_dir.glob("*.py"))
+            print(f"[DEBUG] crystalline contains: {files}", flush=True)
+        raise ModuleNotFoundError(f"Task file not found: {path}")
+
+    module_name = f"_crystalline_{task_type}_{cid}"
+    spec = importlib.util.spec_from_file_location(module_name, str(path))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
 # =========================
 # Constants / Endpoints
@@ -662,7 +688,7 @@ def process_task(task: Dict[str, Any]):
 
         print(f"🚀 Running task: {nt}", flush=True)
         row, col = get_pallet_row_col(col_letter)
-        module = importlib.import_module(f"{task_type}Station{cid}")
+        module = load_crystalline_module(task_type, cid)
 
         # Try to pass exp_id if available; fallback to 3-arg signature
         if exp_id is not None:
@@ -927,4 +953,4 @@ def get_next_task():
 # Entrypoint
 # =========================
 if __name__ == "__main__":
-    uvicorn.run("CSDFStation2:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("csdfstation2:app", host="0.0.0.0", port=8000, reload=True)

@@ -169,7 +169,7 @@ def run(client, pallet_row, pallet_col, exp_id):
                     client.SendCommand("graspplate -119 60 10")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand("moveoneaxis 1 186.481 1")
+                    client.SendCommand("moveoneaxis 1 188.959 1")
                     reply = client.SendCommand("waitforeom")
 
                     client.SendCommand("moveoneaxis 1 195 1")

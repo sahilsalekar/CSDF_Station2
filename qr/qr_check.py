@@ -24,6 +24,10 @@ def qr_check(client):
             if command == '0 0':
                 #client.SendCommand("moveoneaxis 4 121.271 1")
                 #reply = client.SendCommand("waitforeom")
+                #Safe pos
+                command = client.SendCommand("movec 1 1171.568 -30.136 674.205 -1.981 90 180 2")
+                reply = client.SendCommand("waitforeom")
+            
                 print("Vial Not present at QR")
             else:
                 #client.SendCommand("moveoneaxis 4 121.271 1")
