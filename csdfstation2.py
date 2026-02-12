@@ -578,21 +578,31 @@ def dispatcher_loop():
                             allow_cleanup = False
 
                         if not allow_cleanup:
+
+                            print("[BLOCK] Cleanup blocked because sendvial=false.", flush=True)
                             # NEW RULE: if sendvial false, move any type-1 to front (if exists)
                             moved = bring_any_type1_to_front()
                             if moved is not None:
+
+                                print(f"[BLOCK] Found type-1 task, moved to front: {moved}", flush=True)
                                 # Let loop re-read and execute type-1 next
                                 time.sleep(0.2)
                                 continue
 
+                            print("[BLOCK] No type-1 task available.", flush=True)
+
                             # No type-1 found -> try initiation if any
                             if has_initiate():
+
+                                print("[BLOCK] Initiation exists. Running initiation.", flush=True)
                                 payload = pop_next_initiate()
                                 if payload:
                                     print("[INFO] Running Station-2 initiation due to blocked cleanup (no type-1 in tasks).", flush=True)
                                     run_station2_initiation(payload)
                                     time.sleep(0.2)
                                     continue
+                                
+                                print("[BLOCK] No initiation available. Waiting for sendvial=true...", flush=True)
 
                             # Still blocked and nothing else to do
                             time.sleep(1.0)
