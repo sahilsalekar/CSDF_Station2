@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import json
 import os
@@ -40,11 +40,13 @@ def save_status(data):
 
 
 def is_valid_status(entry):
+    exp_id = entry.get("exp_id")
+    
     return (
         isinstance(entry.get("cid"), int)
         and isinstance(entry.get("rid"), int)
-        and isinstance(entry.get("exp_id"), str)
-        and re.match(r"^\d+_\d+$", entry["exp_id"])
+        and isinstance(exp_id, str)
+        and exp_id.isdigit()
     )
 
 
@@ -134,11 +136,14 @@ def check_experiment_completions():
 
 @app.post("/update_status")
 def update_status(update: StatusUpdate):
-    entry = {
-        "exp_id": update.exp_id,
-        "cid": update.cid,
-        "rid": update.rid
-    }
+    entry = {"exp_id": update.exp_id, "cid": update.cid, "rid": update.rid}
+
+    if not is_valid_status(entry):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status entry. exp_id must be numeric string like '1541'. Got: {update.exp_id}"
+        )
+
     add_or_update_status(entry)
     return {"status": "received"}
 
@@ -156,4 +161,4 @@ def start_background_checker():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("status_service:app", host="0.0.0.0", port=8001)
+    uvicorn.run("status_service:app", host="0.0.0.0", port=8001, reload=True)
