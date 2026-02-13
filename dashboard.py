@@ -101,6 +101,26 @@ class Dashboard:
         except requests.RequestException as e:
             print(f"[ERROR] Failed to add vial mass: {e}")
             return None
+        
+    def add_note(self, exp_id, additional_note):
+        try:
+            time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            note_with_time = f"[{time_now}] {additional_note}"
+
+            payload = {
+                "exp_id": exp_id,
+                "additional_note": note_with_time,
+            }
+
+            response = requests.post(f'{self.base_url}/add_note', json=payload)
+            response.raise_for_status()
+            data = response.json()
+            return data
+
+        except requests.RequestException as e:
+            print(f"[ERROR] Failed to send note: {e}")
+            return None
 
 
 

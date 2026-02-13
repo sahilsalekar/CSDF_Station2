@@ -23,27 +23,6 @@
 # time.sleep(10)
 # csdf_kafka.experiment_finished(1, 1, "A")
 
-import json
-# Add task to status.json
-def append_status(exp_id, cid, rid):
-    status_file = "status.json"
-    try:
-        # Load existing data or start fresh
-        try:
-            with open(status_file, "r") as f:
-                data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = []
+import error_task
 
-        # Append new entry
-        data.append({"exp_id": exp_id, "cid": cid, "rid": rid})
-
-        # Write back to file
-        with open(status_file, "w") as f:
-            json.dump(data, f, indent=2)
-
-        print(f"[📥] Added to status.json: exp_id={exp_id}, cid={cid}, rid={rid}")
-    except Exception as e:
-        print(f"[ERROR] Failed to write to status.json: {e}")
-
-append_status("1709", 1, 5)
+error_task.add_error_task(exp_id=555, cid=1, rid=1)

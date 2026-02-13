@@ -1,4 +1,4 @@
-# CSDFStation2.py
+# csdfstation2.py
 import os
 import json
 import time
