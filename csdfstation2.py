@@ -109,7 +109,9 @@ class TaskPayload(BaseModel):
 
 
 class InitiatePayload(BaseModel):
-    note: Optional[str] = None  # optional metadata
+    exp_id: Optional[int] = None
+    note: Optional[str] = None
+    mode: Optional[str] = None
 
 
 # =========================
@@ -617,7 +619,11 @@ def dispatcher_loop():
             if has_initiate():
                 payload = pop_next_initiate()
                 if payload:
-                    run_station2_initiation(payload)
+                    mode = (payload or {}).get("mode")
+                    if mode == "automated_dosing":
+                        run_station2_initiation_automated_dosing(payload)
+                    else:
+                        run_station2_initiation(payload)
                     time.sleep(0.5)
                     continue
 
@@ -851,6 +857,155 @@ def run_station2_initiation(payload: dict):
         current_task = None
         set_dashboard(status="idle", task_txt="", weight=0.0, qr="")
 
+def run_station2_initiation_automated_dosing(payload: dict):
+    global robot_busy, client, current_task, error_flag, error_message, robot_ready
+
+    if not robot_ready or client is None:
+        print("⛔ Robot not ready; aborting Station-2 automated dosing initiation.", flush=True)
+        return
+
+    exp_id_task = payload.get("exp_id")
+    payload_note = payload.get("note")
+
+    error_flag = False
+    error_message = None
+
+    dash = Dashboard()
+    robot_busy = True
+    current_task = {"type": "INIT_STATION2_AUTOMATED_DOSING", "exp_id": exp_id_task}
+    set_dashboard(
+        status="busy",
+        task_txt=f"INIT_STATION2_AUTOMATED_DOSING exp_id={exp_id_task}"
+    )
+
+    try:
+        # Balance check
+        balance_check.balance_check(client)
+        time.sleep(0.5)
+
+        # QR check
+        print("Executing qr_check", flush=True)
+        qr_check.qr_check(client)
+        time.sleep(0.5)
+
+        # TODO: tech new pos
+        # Replace in_vial_tray step with new automated dosing position logic here
+        print("Skipping in_vial_tray for automated dosing initiation (TODO: tech new pos)", flush=True)
+        time.sleep(0.5)
+
+        # QR place vial
+        print("Executing qr_place_vial", flush=True)
+        qr_place_vial.qr_place_vial(client)
+
+        # qr plc sequence
+        print("Executing qr plc sequence", flush=True)
+        qr_data = read_qr_with_retry(max_tries=2, delay=0.5)
+
+        exp_id_from_qr = None
+
+        if qr_data.get("success"):
+            print(f"Scan Okay: {qr_data['data']}", flush=True)
+            vial_id = qr_data["data"]
+            set_dashboard(qr=str(vial_id))
+
+            exp_response = dash.get_experiment_id(vial_id)
+            if exp_response and exp_response.get("found"):
+                exp = exp_response.get("exp") or {}
+                exp_id_from_qr = exp.get("exp_id")
+                print(f"Experiment found for vial {vial_id}: exp_id={exp_id_from_qr}", flush=True)
+            else:
+                print(f"No experiment found for vial {vial_id}. exp_id_from_qr=None", flush=True)
+        else:
+            print(f"Scan Failed: {qr_data.get('data')}, Error: {qr_data.get('error')}", flush=True)
+            exp_id_from_qr = None
+
+        # ---- Decide effective exp_id ----
+        # For automated dosing initiation:
+        # 1) If QR yields exp_id and endpoint exp_id exists -> MUST MATCH, else stop (safety)
+        # 2) If QR yields exp_id and endpoint exp_id missing -> use QR exp_id
+        # 3) If QR fails -> use endpoint exp_id (fallback) and continue (NO failvial)
+
+        if exp_id_from_qr is not None and exp_id_task is not None:
+            if str(exp_id_from_qr).strip() != str(exp_id_task).strip():
+                print(f"[ERROR] EXP_ID MISMATCH! qr={exp_id_from_qr} endpoint={exp_id_task}. Stopping and failing vial.", flush=True)
+                try:
+                    dash.add_note(
+                        exp_id=exp_id_task,
+                        additional_note=(
+                            f"CSDF Station2 automated dosing initiation: EXP_ID mismatch. "
+                            f"QR/Dashboard={exp_id_from_qr} but endpoint exp_id={exp_id_task}. "
+                            f"Manual intervention required."
+                        )
+                    )
+                except Exception as e:
+                    print(f"[WARN] Could not add dashboard note: {e}", flush=True)
+
+                print("Executing qr_pick_vial", flush=True)
+                qr_pick_vial.qr_pick_vial(client)
+                time.sleep(0.5)
+
+                print("Executing fail vial", flush=True)
+                failvial.failvial(client)
+                return
+
+            exp_id = exp_id_task  # matched; use endpoint exp_id
+
+        elif exp_id_from_qr is not None:
+            exp_id = exp_id_from_qr
+
+        else:
+            # QR failed (or dashboard lookup failed). Fallback to endpoint exp_id.
+            exp_id = exp_id_task
+            print(f"[WARN] QR scan/lookup failed. Falling back to exp_id from endpoint: {exp_id}", flush=True)
+
+            if exp_id is None:
+                print("[ERROR] QR failed and no exp_id provided in endpoint payload. Cannot continue safely.", flush=True)
+
+                print("Executing qr_pick_vial", flush=True)
+                qr_pick_vial.qr_pick_vial(client)
+                time.sleep(0.5)
+
+                print("Executing fail vial", flush=True)
+                failvial.failvial(client)
+                return
+
+            try:
+                extra_note = (
+                    "CSDF Station2 automated dosing initiation: QR scan failed (after retries). "
+                    "Using exp_id from endpoint payload as fallback. "
+                    "Please verify vial identity / data association."
+                )
+                if payload_note:
+                    extra_note += f" Note from endpoint: {payload_note}"
+
+                dash.add_note(
+                    exp_id=exp_id,
+                    additional_note=extra_note
+                )
+            except Exception as e:
+                print(f"[WARN] Could not add dashboard note: {e}", flush=True)
+
+        print(f"[INFO] Effective exp_id for automated dosing initiation: {exp_id}", flush=True)
+
+        # Continue here with your downstream logic using effective exp_id
+        # TODO: add next automated dosing steps here
+
+        client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 999.837")
+        _ = client.SendCommand("waitforeom")
+
+    except Exception as e:
+        set_error(f"Station-2 automated dosing initiation failed: {e}")
+
+    finally:
+        try:
+            client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+            _ = client.SendCommand("waitforeom")
+        except Exception as e:
+            print(f"[WARN] Failed to move home in automated dosing initiation finally: {e}", flush=True)
+
+        robot_busy = False
+        current_task = None
+        set_dashboard(status="idle", task_txt="", weight=0.0, qr="")
 
 # =========================
 # API endpoints
@@ -897,6 +1052,12 @@ def initiate_station2(payload: InitiatePayload):
     enqueue_initiate(payload.dict())
     return {"status": "Initiation queued (persistent)"}
 
+@app.post("/initiate-station2-dosing-automated")
+def initiate_station2_dosing_automated(payload: InitiatePayload):
+    data = payload.dict()
+    data["mode"] = "automated_dosing"
+    enqueue_initiate(data)
+    return {"status": "Automated dosing initiation queued", "payload": data}
 
 @app.post("/add_task")
 def add_task(payload: TaskPayload):
