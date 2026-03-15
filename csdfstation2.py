@@ -21,6 +21,7 @@ from dashboard import Dashboard
 from balance import balance_check
 from qr import qr_check
 import in_vial_tray
+import in_vial
 from qr import qr_place_vial
 from qr import qr_pick_vial
 import failvial
@@ -909,9 +910,10 @@ def run_station2_initiation_automated_dosing(payload: dict):
         qr_check.qr_check(client)
         time.sleep(0.5)
 
-        # TODO: tech new pos
-        # Replace in_vial_tray step with new automated dosing position logic here
-        print("Skipping in_vial_tray for automated dosing initiation (TODO: tech new pos)", flush=True)
+        # In vial 
+        print("Executing in_vial", flush=True)
+        if not in_vial.in_vial(client):
+            return
         time.sleep(0.5)
 
         # QR place vial
