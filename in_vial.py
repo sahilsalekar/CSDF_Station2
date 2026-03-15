@@ -15,20 +15,16 @@ def in_vial(client):
         if reply == "0":
             print("Robot moved to In Tray.")
 
-            # Safe Pos
-            client.SendCommand("moveoneaxis 1 571.951 1")
-            reply = client.SendCommand("waitforeom")
-
             time.sleep(0.5)
 
             # Try to pick the plate
-            reply = client.SendCommand("pickplate 7")
+            reply = client.SendCommand("pickplate 10")
             client.SendCommand("waitforeom")
 
             if reply == "0 -1":
                 
                 # Safepos
-                reply = client.SendCommand("movec 1 1012.839 -22.871 571.949 -0.507 90 180 2")
+                reply = client.SendCommand("movec 1 88.67 -37.652 753.486 -4.489 90 180 2")
                 client.SendCommand("waitforeom")
                 return True # Vial Found
             else:
