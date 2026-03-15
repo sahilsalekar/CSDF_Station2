@@ -24,7 +24,7 @@ def in_vial(client):
             if reply == "0 -1":
                 
                 # Safepos
-                reply = client.SendCommand("movec 1 88.67 -37.652 753.486 -4.489 90 180 2")
+                reply = client.SendCommand("movec 1 988.67 -37.652 753.486 -4.489 90 180 2")
                 client.SendCommand("waitforeom")
                 return True # Vial Found
             else:
