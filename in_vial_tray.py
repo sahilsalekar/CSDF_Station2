@@ -9,7 +9,7 @@ def in_vial_tray(client):
     
     try:
         # Robot to Tray
-        client.SendCommand("moveoneaxis 6 840.054 1")
+        client.SendCommand("moveoneaxis 6 752.602 1")
         reply = client.SendCommand("waitforeom")
         if reply == "0":
             print("Robot moved to In Tray.")
