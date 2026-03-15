@@ -62,6 +62,10 @@ INITIATE_FILE = "initiate_task.json"     # persistent queue for Station-1 initia
 TRAY_API       = "http://localhost:8002/is_tray_ready"   # tray gate for experiments (optional)
 SEND_VIAL_API  = "http://localhost:8005/send_vial"       # cleanup permission (type 2)
 
+CSDF_STATION1_STATUS_API = "http://130.159.93.21:8006/csdfstation1_status" # check callback of csdf station 2 to csdf station 1
+
+CSDF_STATION1_CALLBACK_API = "http://130.159.93.21:8006/csdfstation2_initiated_success" # post csdf station 2 success callback
+
 # Node-RED UI endpoints
 NODERED_STATUS = "http://127.0.0.1:1880/robot-status"
 NODERED_TASK   = "http://127.0.0.1:1880/task-update"
@@ -626,6 +630,23 @@ def dispatcher_loop():
                         run_station2_initiation(payload)
                     time.sleep(0.5)
                     continue
+
+            # --- Station1 callback check here (idle path) ---
+            try:
+                resp = requests.get(CSDF_STATION1_STATUS_API, timeout=5)
+                if resp.ok:
+                    try:
+                        data = resp.json()
+                    except ValueError:
+                        data = {}
+                    if data.get("status") == "Waiting for Station2 success callback...":
+                        cb = requests.post(CSDF_STATION1_CALLBACK_API, timeout=5)
+                        if not cb.ok:
+                            print(f"[WARN] Station1 callback failed: {cb.status_code}", flush=True)
+                else:
+                    print(f"[WARN] Station1 status HTTP {resp.status_code}", flush=True)
+            except requests.RequestException as e:
+                print(f"[WARN] Station1 status check failed: {e}", flush=True)
 
             time.sleep(1.0)
 
