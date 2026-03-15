@@ -1,2 +1,0 @@
-#automated_holder.py
-

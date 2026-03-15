@@ -162,6 +162,13 @@ def setup_robot():
         # client.SendCommand("pallety 9 4 1187.184 -432.869 749.614")
         # time.sleep(0.5)
 
+        # Station 10 in_vial
+        client.SendCommand("rail 10 816.542")
+        time.sleep(0.5)
+        client.SendCommand("stationtype 10 1 1 200 5 0")
+        time.sleep(0.5)
+        client.SendCommand("palletorigin 10 981.933 -543.178 553.526 -1.72 90 180 2 ")
+
        
 
         return client
