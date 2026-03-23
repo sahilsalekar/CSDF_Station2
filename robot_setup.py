@@ -131,11 +131,11 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 7 1 1 150 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 7 918.998 -510.123 422.828 -0.888 90 180 2 ")
+        client.SendCommand("palletorigin 7 921.475 -508.148 426.381 -1.327 90 180 2 ")
         time.sleep(0.5)
-        client.SendCommand("palletx 7 2 916.972 -569.473 423.828")
+        client.SendCommand("palletx 7 2 919.625 -569.237 427.161")
         time.sleep(0.5)
-        client.SendCommand("pallety 7 4 808.015 -505.187 421.793")
+        client.SendCommand("pallety 7 4 810.83 -505.658 425.885")
         time.sleep(0.5)
 
         # Station 8 qr
@@ -167,7 +167,7 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 10 1 1 200 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 10 981.933 -543.178 553.526 -1.72 90 180 2 ")
+        client.SendCommand("palletorigin 10 983.298 -538.872 570.166 -1.746 90 180 2 ")
 
        
 
