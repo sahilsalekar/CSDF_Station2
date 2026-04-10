@@ -167,7 +167,7 @@ def setup_robot():
         time.sleep(0.5)
         client.SendCommand("stationtype 10 1 1 200 5 0")
         time.sleep(0.5)
-        client.SendCommand("palletorigin 10 983.298 -538.872 570.166 -1.746 90 180 2 ")
+        client.SendCommand("palletorigin 10 983.298 -538.872 555.236 -1.746 90 180 2 ")
 
        
 
