@@ -72,7 +72,7 @@ def in_vial_tray(client):
                     #reply = client.SendCommand("waitforeom")
                     
                     # Safepos
-                    reply = client.SendCommand("movec 1 1012.839 -22.871 571.949 -0.507 90 180 2")
+                    reply = client.SendCommand("movec 1 925.291 -22.585 572.138 -0.561 90 180 2")
                     client.SendCommand("waitforeom")
                     return True # Vial Found
                 else:
@@ -83,7 +83,7 @@ def in_vial_tray(client):
                         #reply = client.SendCommand("waitforeom")
 
                         # Safepos
-                        reply = client.SendCommand("movec 1 1012.839 -22.871 571.949 -0.507 90 180 2")
+                        reply = client.SendCommand("movec 1 925.291 -22.585 572.138 -0.561 90 180 2")
                         client.SendCommand("waitforeom")
                         return False # No vial found
                         #raise RuntimeError("No Vial Found in - in tray!")
