@@ -79,7 +79,10 @@ RID_TO_LETTER = "ABCDEFGH"
 # =========================
 # App / Globals
 # =========================
-app = FastAPI()
+app = FastAPI(title="CSDF Station 2",
+    version="1.0.0",
+    description="API for CSDF Station 2 control",
+    )
 
 # IMPORTANT: use RLock to avoid deadlocks when nested functions acquire the same lock
 lock = threading.RLock()
