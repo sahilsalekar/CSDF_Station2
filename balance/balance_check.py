@@ -24,15 +24,15 @@ def balance_check(client):
         if not Shield_sensor:   
 
             # Robot to Balance
-            client.SendCommand("moveoneaxis 6 343.377 1")
+            client.SendCommand("moveoneaxis 6 343.377 3")
             reply = client.SendCommand("waitforeom")
             if reply == "0":
                 print("Robot moved to Balance.")
 
-                client.SendCommand("movej 1 1046.97 -1.398 124.000 179.77 103.064 343.377") # Safe Pos Balance
+                client.SendCommand("movej 3 1046.97 -1.398 124.000 179.77 103.064 343.377") # Safe Pos Balance
                 reply = client.SendCommand("waitforeom")
                 
-                client.SendCommand("movej 1 1046.97 -16.638 113.639 -7.258 115.873 343.377") # Balance approach
+                client.SendCommand("movej 3 1046.97 -16.638 113.639 -7.258 115.873 343.377") # Balance approach
                 reply = client.SendCommand("waitforeom")
             
                 command = client.SendCommand("pickplate 9")
@@ -40,18 +40,18 @@ def balance_check(client):
 
                 if command == '0 0':
 
-                    client.SendCommand("movej 1 1046.97 -1.398 124.000 179.77 103.064 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 3 1046.97 -1.398 124.000 179.77 103.064 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand("movej 1 1046.97 -2.902 180.537 178.063 103.542 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 3 1046.97 -2.902 180.537 178.063 103.542 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
                 else:
 
-                    client.SendCommand("movej 1 1046.97 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 3 1046.97 -1.398 124.000 179.77 109.165 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand("movej 1 1046.97 -2.902 180.537 178.063 109.165 343.377") # Safe Pos Balance
+                    client.SendCommand("movej 3 1046.97 -2.902 180.537 178.063 109.165 343.377") # Safe Pos Balance
                     reply = client.SendCommand("waitforeom")
 
                     print("Vial present")

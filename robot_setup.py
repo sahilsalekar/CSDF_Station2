@@ -30,6 +30,11 @@ def setup_robot():
 
         client.SendCommand("profile 2 30 0 100 100 0.1 0.1 10 0")
         time.sleep(0.5)
+
+        # Setting Profile speed 3
+
+        client.SendCommand("profile 3 90 0 100 100 0.1 0.1 10 0")
+        time.sleep(0.5)
         
         # Moving to Home Position
 

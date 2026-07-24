@@ -8,11 +8,11 @@ def qr_check(client):
     print("Executing Routine qr_check")
     try:
         # Robot to QR
-        client.SendCommand("moveoneaxis 6 999.837 1")
+        client.SendCommand("moveoneaxis 6 999.837 3")
         reply = client.SendCommand("waitforeom")
         if reply == "0":
             print("Robot moved to qr.")
-            client.SendCommand("movej 1 674.255 11.718 316.242 121.271 109.165 999.837")
+            client.SendCommand("movej 3 674.255 11.718 316.242 121.271 109.165 999.837")
             reply = client.SendCommand("waitforeom")
         
             #client.SendCommand("moveoneaxis 4 -238.744 1")
@@ -25,7 +25,7 @@ def qr_check(client):
                 #client.SendCommand("moveoneaxis 4 121.271 1")
                 #reply = client.SendCommand("waitforeom")
                 #Safe pos
-                command = client.SendCommand("movec 1 1171.568 -30.136 674.205 -1.981 90 180 2")
+                command = client.SendCommand("movec 3 1171.568 -30.136 674.205 -1.981 90 180 2")
                 reply = client.SendCommand("waitforeom")
             
                 print("Vial Not present at QR")
@@ -33,7 +33,7 @@ def qr_check(client):
                 #client.SendCommand("moveoneaxis 4 121.271 1")
                 #reply = client.SendCommand("waitforeom")
 
-                client.SendCommand("movej 1 732.082 -2.902 180.537 178.063 109.165 999.837")
+                client.SendCommand("movej 3 732.082 -2.902 180.537 178.063 109.165 999.837")
                 reply = client.SendCommand("waitforeom")
 
                 print("Vial present")
