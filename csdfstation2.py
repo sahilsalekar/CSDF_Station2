@@ -604,14 +604,26 @@ def dispatcher_loop():
 
                             print("[BLOCK] No type-1 task available.", flush=True)
 
-                            # No type-1 found -> try initiation if any
+                            # No type-1 available, so initiation may run while cleanup is blocked
                             if has_initiate():
-
-                                print("[BLOCK] Initiation exists. Running initiation.", flush=True)
                                 payload = pop_next_initiate()
+
                                 if payload:
-                                    print("[INFO] Running Station-2 initiation due to blocked cleanup (no type-1 in tasks).", flush=True)
-                                    run_station2_initiation(payload)
+                                    mode = payload.get("mode")
+
+                                    if mode == "automated_dosing":
+                                        print(
+                                            "[INFO] Running automated dosing initiation because cleanup is blocked.",
+                                            flush=True
+                                        )
+                                        run_station2_initiation_automated_dosing(payload)
+                                    else:
+                                        print(
+                                            "[INFO] Running normal initiation because cleanup is blocked.",
+                                            flush=True
+                                        )
+                                        run_station2_initiation(payload)
+
                                     time.sleep(0.2)
                                     continue
                                 
@@ -750,7 +762,14 @@ def process_task(task: Dict[str, Any]):
     except Exception as e:
         # On failure, DO NOT requeue (matches your current behavior)
         set_error(f"Task execution failed: {e}")
-        remove_task_from_file(nt)
+        if task_type == 2:
+            enqueue_task(nt)
+            print(
+                f"[REQUEUE] Type-2 cleanup task kept after failure: {nt}",
+                flush=True
+            )
+        else:
+            remove_task_from_file(nt)
 
     finally:
         robot_busy = False
