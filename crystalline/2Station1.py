@@ -66,7 +66,7 @@ def run(client, pallet_row, pallet_col, exp_id_from_task=None):
             print(f"Pallet index set successfully to {sta_num} {pallet_row} {pallet_col}")
 
             # Move to Crystalline 1
-            client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+            client.SendCommand(f"moveoneaxis 6 {axis_6} 3")
             reply = client.SendCommand("waitforeom")
 
             if reply == "0":
@@ -260,7 +260,7 @@ def run(client, pallet_row, pallet_col, exp_id_from_task=None):
                     print("Successfully completed vention vial place")
 
                     # Home position
-                    client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+                    client.SendCommand("movej 3 1017.83 -2.902 180.537 178.063 103.542 -934.686")
                     reply = client.SendCommand("waitforeom")
 
                     response = requests.post("http://localhost:8005/initiate_CSDF_Station3", json={"exp_id": str(exp_id)})
@@ -278,7 +278,7 @@ def run(client, pallet_row, pallet_col, exp_id_from_task=None):
                     reply = client.SendCommand("waitforeom")
 
                     # Home position
-                    client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+                    client.SendCommand("movej 3 1017.83 -2.902 180.537 178.063 103.542 -934.686")
                     reply = client.SendCommand("waitforeom")
 
                     #raise RuntimeError(f"Vial Not Present at {sta_num} {pallet_row} {pallet_col}! Stopping Execution")
@@ -300,7 +300,7 @@ def run(client, pallet_row, pallet_col, exp_id_from_task=None):
 
     finally:
         #Home position
-        client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+        client.SendCommand("movej 3 1017.83 -2.902 180.537 178.063 103.542 -934.686")
         reply = client.SendCommand("waitforeom")
 
         

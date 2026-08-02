@@ -52,13 +52,13 @@ def run(client, pallet_row, pallet_col, exp_id):
             print(f"Pallet index set successfully to {sta_num} {pallet_row} {pallet_col}")
 
             # Move to Crystalline 4
-            client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+            client.SendCommand(f"moveoneaxis 6 {axis_6} 3")
             reply = client.SendCommand("waitforeom")
 
             if reply == "0":
 
                 # safe postion (check axis 6)
-                client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                client.SendCommand(f"movej 3 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
                 reply = client.SendCommand("waitforeom") 
 
                 time.sleep(0.5)
@@ -69,10 +69,10 @@ def run(client, pallet_row, pallet_col, exp_id):
                 if reply == "0 0":
                     print("Vial not present")
 
-                    client.SendCommand(f"movej 1 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
+                    client.SendCommand(f"movej 3 1021.847 -1.398 124.000 179.77 103.064 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
-                    client.SendCommand(f"movej 1 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
+                    client.SendCommand(f"movej 3 1017.83 -2.902 180.537 178.063 103.542 {axis_6}")
                     reply = client.SendCommand("waitforeom")
 
                     
@@ -142,7 +142,7 @@ def run(client, pallet_row, pallet_col, exp_id):
 
                     time.sleep(0.5)
                     
-                    client.SendCommand(f"moveoneaxis 6 {axis_6} 1")
+                    client.SendCommand(f"moveoneaxis 6 {axis_6} 3")
                     reply = client.SendCommand("waitforeom")
 
                     # safe postion
@@ -239,7 +239,7 @@ def run(client, pallet_row, pallet_col, exp_id):
                     reply = client.SendCommand("waitforeom")
 
                     #Home position
-                    client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+                    client.SendCommand("movej 3 1017.83 -2.902 180.537 178.063 103.542 -934.686")
                     reply = client.SendCommand("waitforeom")
 
                     #Intiate Experiment
@@ -294,7 +294,7 @@ def run(client, pallet_row, pallet_col, exp_id):
 
     finally:
         #Home position
-        client.SendCommand("movej 1 1017.83 -2.902 180.537 178.063 103.542 -934.686")
+        client.SendCommand("movej 3 1017.83 -2.902 180.537 178.063 103.542 -934.686")
         reply = client.SendCommand("waitforeom")
         try:
             resp = requests.post("http://localhost:8006/csdfstation2_initiated_success")
