@@ -25,6 +25,7 @@ import in_vial
 from qr import qr_place_vial
 from qr import qr_pick_vial
 import failvial
+import initial_check
 
 # PLC QR reader used by retry helper
 from plc_qr_seq import plc_qr_seq
@@ -515,6 +516,11 @@ def startup_event():
     try:
         client = robot_setup.setup_robot()
         print("✅ Robot setup finished.", flush=True)
+
+        print("🔍 Running initial balance and QR checks...", flush=True)
+        initial_check.initial_check(client)
+        print("✅ Initial checks finished.", flush=True)
+
     except Exception as e:
         set_error(f"Robot setup failed: {e}")
         robot_ready = False
@@ -800,13 +806,13 @@ def run_station2_initiation(payload: dict):
 
     try:
         # Balance check (keep if needed in your workflow)
-        balance_check.balance_check(client)
-        time.sleep(0.5)
+        #balance_check.balance_check(client)
+        #time.sleep(0.5)
 
         # QR check
-        print("Executing qr_check", flush=True)
-        qr_check.qr_check(client)
-        time.sleep(0.5)
+        #print("Executing qr_check", flush=True)
+        #qr_check.qr_check(client)
+        #time.sleep(0.5)
 
         # In vial tray
         print("Executing in_vial_tray", flush=True)
@@ -929,13 +935,13 @@ def run_station2_initiation_automated_dosing(payload: dict):
     )
     try:
         # Balance check
-        balance_check.balance_check(client)
-        time.sleep(0.5)
+        #balance_check.balance_check(client)
+        #time.sleep(0.5)
 
         # QR check
-        print("Executing qr_check", flush=True)
-        qr_check.qr_check(client)
-        time.sleep(0.5)
+        #print("Executing qr_check", flush=True)
+        #qr_check.qr_check(client)
+        #time.sleep(0.5)
 
         # In vial
         print("Executing in_vial", flush=True)
