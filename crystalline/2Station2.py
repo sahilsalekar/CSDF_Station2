@@ -42,15 +42,15 @@ def run(client, pallet_row, pallet_col, exp_id_from_task=None):
     try:
 
         # Balance Check
-        balance_check.balance_check(client)
+        #balance_check.balance_check(client)
 
-        time.sleep(0.5)
+        #time.sleep(0.5)
 
         # QR Check
-        print("Executing qr_check")
-        qr_check.qr_check(client)
+        #print("Executing qr_check")
+        #qr_check.qr_check(client)
 
-        time.sleep(0.5)
+        #time.sleep(0.5)
 
         cid = sta_num
         rid = (pallet_row - 1) * 4 + (pallet_col - 1)
