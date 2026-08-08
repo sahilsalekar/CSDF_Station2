@@ -136,6 +136,10 @@ def check_experiment_completions():
 
 @app.post("/update_status")
 def update_status(update: StatusUpdate):
+    """
+    cid (crystalline id) = 1 to 6
+    rid (reactor id) = A = 0 to H = 7
+    """
     entry = {"exp_id": update.exp_id, "cid": update.cid, "rid": update.rid}
 
     if not is_valid_status(entry):
