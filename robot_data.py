@@ -4,7 +4,7 @@ import time
 import datetime
 import requests 
 
-API_URL = "http://10.5.49.10:8000/robot-data"
+API_URL = "http://130.159.77.34:8000/robot-data"
 
 
 def _send_to_endpoint(payload: dict):
