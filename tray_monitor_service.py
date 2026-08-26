@@ -3,7 +3,10 @@ from pydantic import BaseModel
 import os
 import json
 
-app = FastAPI()
+app = FastAPI(title="CSDF Station 2 Tray Service",
+    version="1.0.0",
+    description="API for CSDF Station 2 tray monitor service",
+    )
 TRAY_FILE = "tray_pos.txt"
 MAX_POS = 8
 

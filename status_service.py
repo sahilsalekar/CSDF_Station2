@@ -7,7 +7,10 @@ import time
 import requests
 import re
 
-app = FastAPI()
+app = FastAPI(title="CSDF Station 2 Status Service",
+    version="1.0.0",
+    description="API for CSDF Station 2 status service",
+    )
 
 STATUS_FILE = "status.json"
 TASK_API = "http://localhost:8000/add_task"
