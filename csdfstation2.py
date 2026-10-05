@@ -953,6 +953,13 @@ def run_station2_initiation_automated_dosing(payload: dict):
         print("Executing qr_place_vial", flush=True)
         qr_place_vial.qr_place_vial(client)
 
+        # station2 initation success (eary to optimise speed of robots)
+        try:
+            resp = requests.post("http://localhost:8006/csdfstation2_initiated_success")
+            print(f"[INFO] Station2 success callback sent. Status={resp.status_code}")
+        except Exception as e:
+            print(f"[WARN] Could not notify CSDF_Station1 success: {e}")
+
         # QR plc sequence
         print("Executing qr plc sequence", flush=True)
         qr_data = read_qr_with_retry(max_tries=2, delay=0.5)
