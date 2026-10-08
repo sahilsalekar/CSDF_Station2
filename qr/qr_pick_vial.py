@@ -21,7 +21,8 @@ def qr_pick_vial(client):
                 #client.SendCommand("moveoneaxis 4 121.271 1")
                 #reply = client.SendCommand("waitforeom")
                 print("Vial Found At QR")
-        
+                client.SendCommand("movej 1 732.082 -2.902 180.537 178.063 109.165 999.837")
+                reply = client.SendCommand("waitforeom")
             else:
 
                 #client.SendCommand("moveoneaxis 4 121.271 1")

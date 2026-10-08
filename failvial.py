@@ -34,6 +34,8 @@ def failvial(client):
 
         print("Successfuly completed vial to vention place")
 
+        response = requests.post("http://localhost:8005/initiate_fail_vial")
+
         print("Fail vial station 2 success")
 
         # client.SendCommand("moveoneaxis 6 431.523 1")
